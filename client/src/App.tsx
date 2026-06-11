@@ -2,6 +2,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/Dashboard";
+import AdminPanel from "@/pages/AdminPanel";
+import CRUDManager from "@/pages/CRUDManager";
+import AIChat from "@/pages/AIChat";
+import DocumentManager from "@/pages/DocumentManager";
+import Notifications from "@/pages/Notifications";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -12,6 +17,11 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/dashboard"} component={Dashboard} />
+      <Route path={"/admin"} component={AdminPanel} />
+      <Route path={"/crud"} component={CRUDManager} />
+      <Route path={"/ai"} component={AIChat} />
+      <Route path={"/documents"} component={DocumentManager} />
+      <Route path={"/notifications"} component={Notifications} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
