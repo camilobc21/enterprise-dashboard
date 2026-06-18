@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -158,7 +158,7 @@ export async function getUserNotifications(userId: number, limit: number = 20, o
 export async function getUnreadNotifications(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(notifications).where(eq(notifications.userId, userId) && eq(notifications.isRead, false));
+  return db.select().from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
 }
 
 export async function createNotification(data: InsertNotification) {
