@@ -9,6 +9,7 @@ import { aiRouter } from "./routers/ai";
 import { crudRouter } from "./routers/crud";
 import { auditRouter } from "./routers/audit";
 import { usersRouter } from "./routers/users";
+import { wifiRouter } from "./routers/wifi";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -30,6 +31,7 @@ export const appRouter = router({
   crud: crudRouter,
   audit: auditRouter,
   users: usersRouter,
+  wifi: wifiRouter,
 });
 
 export type AppRouter = typeof appRouter;

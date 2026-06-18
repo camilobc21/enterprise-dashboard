@@ -7,6 +7,8 @@ import CRUDManager from "@/pages/CRUDManager";
 import AIChat from "@/pages/AIChat";
 import DocumentManager from "@/pages/DocumentManager";
 import Notifications from "@/pages/Notifications";
+import WiFiAnalysis from "@/pages/WiFiAnalysis";
+import WiFiNetworks from "@/pages/WiFiNetworks";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -23,6 +25,8 @@ function Router() {
       <Route path={"/ai"} component={AIChat} />
       <Route path={"/documents"} component={DocumentManager} />
       <Route path={"/notifications"} component={Notifications} />
+      <Route path={"/wifi-analysis"} component={WiFiAnalysis} />
+      <Route path={"/wifi-networks"} component={WiFiNetworks} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
