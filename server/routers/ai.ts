@@ -17,37 +17,46 @@ async function getWiFiData() {
   }
 }
 
-// Generar contexto para la IA basado en datos WiFi
+// Generar contexto detallado para la IA basado en datos WiFi
 function generateWiFiContext(wifiData: any): string {
   if (!wifiData || wifiData.sin_datos) {
     return "No hay datos de WiFi disponibles actualmente.";
   }
 
-  const { ultimo_escaneo, redes, canales, prediccion, alertas } = wifiData;
+  const { ultimo_escaneo, redes, canales, prediccion, alertas, historico } = wifiData;
 
   let context = `
-## Datos Actuales de WiFi
+## DATOS ACTUALES DE ANÁLISIS WIFI
 
 ### Escaneo Más Reciente
 - Total de redes detectadas: ${ultimo_escaneo?.total_redes || 0}
-- Canal óptimo recomendado: ${ultimo_escaneo?.canal_optimo || "N/A"}
+- Canal óptimo predicho: ${ultimo_escaneo?.canal_optimo || "N/A"}
 - Saturación general: ${ultimo_escaneo?.saturacion_general || 0}%
-- Ocupación espectral: ${ultimo_escaneo?.ocupacion_espectral || 0}%
+- Ocupación espectral global: ${ultimo_escaneo?.ocupacion_espectral || 0}%
 - Pérdida de paquetes: ${ultimo_escaneo?.perdida_paquetes || 0}%
+- Tendencia IA: ${ultimo_escaneo?.tendencia_ia || 0}
+- Timestamp: ${ultimo_escaneo?.timestamp || "N/A"}
 
-### Redes Detectadas (Top 5)
-${redes?.slice(0, 5).map((r: any) => `- ${r.ssid} (Canal ${r.canal}, RSSI: ${r.rssi}dBm, ${r.encriptacion})`).join("\n")}
+### Redes WiFi Detectadas (Top 10)
+${redes?.slice(0, 10).map((r: any) => `- **${r.ssid}** | Canal: ${r.canal} | RSSI: ${r.rssi}dBm | Ancho: ${r.ancho_banda}MHz | Encriptación: ${r.encriptacion}`).join("\n")}
 
-### Estado de Canales
-${canales?.map((c: any) => `- Canal ${c.canal}: ${c.cantidad_redes} redes, ${c.saturacion}% saturación, ${c.anomalia ? "⚠️ ANOMALÍA" : "✓ Normal"}`).join("\n")}
+### Estado Detallado de Canales (1-13)
+${canales?.map((c: any) => {
+  const estado = c.anomalia ? "🔴 ANOMALÍA" : c.saturacion >= 70 ? "🟡 CRÍTICO" : "🟢 NORMAL";
+  return `Canal ${c.canal}: ${estado} | Redes: ${c.cantidad_redes} | Saturación: ${c.saturacion}% | Ocupación Espectral: ${c.ocupacion_espectral}% | Interferencia Adyacente: ${c.interferencia_adyacente}% | Pérdida: ${c.perdida_paquetes}% | Riesgo: ${c.riesgo_anomalia}%`;
+}).join("\n")}
 
 ### Predicción IA
 - Canal predicho: ${prediccion?.canal_predicho || "N/A"}
 - Confianza: ${prediccion?.confianza || 0}%
 - Score espectral: ${prediccion?.score_espectral || 0}
+- Detalle: ${prediccion?.detalle || "N/A"}
 
-### Alertas Activas (Últimas 5)
-${alertas?.slice(0, 5).map((a: any) => `- [${a.severidad}] Canal ${a.canal}: ${a.descripcion}`).join("\n")}
+### Alertas Activas (Últimas 10)
+${alertas?.slice(0, 10).map((a: any) => `- [${a.severidad}] Canal ${a.canal} - ${a.tipo}: ${a.descripcion}`).join("\n")}
+
+### Histórico de Últimos 20 Escaneos
+${historico?.map((h: any) => `- Escaneo ${h.id}: ${h.total_redes} redes, Saturación: ${h.saturacion_general}%, Ocupación: ${h.ocupacion_espectral}%, Pérdida: ${h.perdida_paquetes}%, Tendencia: ${h.tendencia_ia}`).join("\n")}
   `;
 
   return context;
@@ -70,10 +79,16 @@ export const aiRouter = router({
       createAIConversation({
         userId: ctx.user.id,
         title: input.title || "Nueva Conversación",
-        systemPrompt: input.systemPrompt || `Eres un asistente experto en análisis de redes WiFi y espectro electromagnético. 
-Tu rol es ayudar a analizar datos de escaneos WiFi, identificar problemas de interferencia, 
-recomendar canales óptimos y predecir anomalías. Proporciona recomendaciones prácticas y 
-explicaciones técnicas claras. Sé conciso pero informativo.`,
+        systemPrompt: input.systemPrompt || `Eres un experto en análisis de redes WiFi 2.4GHz con especialidad en:
+- Optimización de canales (1-13)
+- Análisis de interferencia espectral
+- Detección de anomalías
+- Predicción de problemas de conectividad
+- Recomendaciones prácticas de configuración
+
+Analiza datos técnicos reales y proporciona recomendaciones específicas, medibles y accionables.
+Siempre fundamenta tus análisis en los datos proporcionados.
+Sé conciso pero técnicamente preciso.`,
       })
     ),
 
@@ -97,7 +112,7 @@ explicaciones técnicas claras. Sé conciso pero informativo.`,
 
       const llmMessages = [
         { role: "system" as const, content: systemPrompt },
-        ...(contextMessage ? [{ role: "system" as const, content: `Contexto actual del sistema:\n${contextMessage}` }] : []),
+        ...(contextMessage ? [{ role: "system" as const, content: `CONTEXTO ACTUAL DEL SISTEMA:\n${contextMessage}` }] : []),
         ...messages.map((msg) => ({
           role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
@@ -126,7 +141,7 @@ explicaciones técnicas claras. Sé conciso pero informativo.`,
       return { userMessage: input.message, assistantMessage };
     }),
 
-  // Nuevo: Análisis automático de datos WiFi
+  // Análisis automático de datos WiFi
   analyzeWiFiData: protectedProcedure
     .mutation(async ({ ctx }) => {
       const wifiData = await getWiFiData();
@@ -136,16 +151,19 @@ explicaciones técnicas claras. Sé conciso pero informativo.`,
 
       const context = generateWiFiContext(wifiData);
       const prompt = `Analiza los siguientes datos de WiFi y proporciona:
-1. Resumen del estado actual
-2. Problemas identificados
-3. Recomendaciones de optimización
-4. Predicción de riesgos futuros
+
+1. **Resumen del Estado Actual**: Evaluación general de la salud de la red
+2. **Problemas Críticos Identificados**: Canales con anomalías, alta interferencia, pérdida de paquetes
+3. **Análisis de Canales**: Cuáles están sobrecargados, cuáles están subutilizados
+4. **Interferencia Espectral**: Canales que interfieren entre sí
+5. **Recomendaciones de Optimización**: Acciones específicas para mejorar rendimiento
+6. **Predicción de Riesgos**: Qué problemas podrían ocurrir si no se toman acciones
 
 ${context}`;
 
       const response = await invokeLLM({
         messages: [
-          { role: "system" as const, content: "Eres un experto en análisis de redes WiFi. Proporciona análisis detallado y recomendaciones prácticas." },
+          { role: "system" as const, content: "Eres un experto en análisis de redes WiFi. Proporciona análisis detallado, técnico y accionable basado ÚNICAMENTE en los datos proporcionados." },
           { role: "user" as const, content: prompt },
         ],
       });
@@ -154,7 +172,7 @@ ${context}`;
       return { analysis: typeof analysis === "string" ? analysis : "Error en análisis" };
     }),
 
-  // Nuevo: Generar reporte automático
+  // Generar reporte automático
   generateReport: protectedProcedure
     .input(z.object({ format: z.enum(["text", "markdown", "html"]).optional() }))
     .mutation(async ({ ctx, input }) => {
@@ -164,23 +182,26 @@ ${context}`;
       }
 
       const context = generateWiFiContext(wifiData);
-      const prompt = `Genera un reporte profesional sobre el estado de la red WiFi basado en estos datos:
+      const prompt = `Genera un reporte profesional y detallado sobre el estado de la red WiFi:
 
 ${context}
 
-Incluye:
-1. Ejecutivo
-2. Métricas clave
-3. Análisis de canales
-4. Alertas y anomalías
-5. Recomendaciones
-6. Conclusiones
+El reporte debe incluir:
+
+1. **Resumen Ejecutivo**: Evaluación general en 2-3 líneas
+2. **Métricas Clave**: Tabla con saturación, ocupación, pérdida por canal
+3. **Análisis de Canales**: Detalle de cada canal con estado y recomendaciones
+4. **Anomalías Detectadas**: Lista de problemas identificados
+5. **Interferencia Espectral**: Análisis de solapamiento entre canales
+6. **Predicciones IA**: Tendencias y riesgos futuros
+7. **Plan de Acción**: Recomendaciones priorizadas por impacto
+8. **Conclusiones**: Resumen de hallazgos principales
 
 Formato: ${input.format || "markdown"}`;
 
       const response = await invokeLLM({
         messages: [
-          { role: "system" as const, content: "Eres un experto en reportes técnicos de redes. Genera reportes profesionales, claros y accionables." },
+          { role: "system" as const, content: "Eres un experto en reportes técnicos de redes WiFi. Genera reportes profesionales, estructurados y basados en datos reales." },
           { role: "user" as const, content: prompt },
         ],
       });
@@ -189,7 +210,7 @@ Formato: ${input.format || "markdown"}`;
       return { report: typeof report === "string" ? report : "Error en reporte" };
     }),
 
-  // Nuevo: Obtener recomendaciones
+  // Obtener recomendaciones específicas
   getRecommendations: protectedProcedure
     .mutation(async ({ ctx }) => {
       const wifiData = await getWiFiData();
@@ -198,25 +219,109 @@ Formato: ${input.format || "markdown"}`;
       }
 
       const context = generateWiFiContext(wifiData);
-      const prompt = `Basándote en estos datos de WiFi, proporciona 5 recomendaciones específicas y accionables para mejorar el rendimiento:
+      const prompt = `Basándote en estos datos REALES de WiFi, genera 5-7 recomendaciones específicas, medibles y accionables.
+
+IMPORTANTE: Las recomendaciones DEBEN estar fundamentadas en los datos específicos del sistema.
 
 ${context}
 
-Formato: Lista JSON con estructura {id, prioridad, titulo, descripcion, impacto_estimado}`;
+Para cada recomendación, proporciona:
+1. Título claro
+2. Descripción técnica detallada
+3. Prioridad (CRÍTICA, ALTA, MEDIA, BAJA)
+4. Impacto estimado (mejora esperada en %)
+5. Pasos de implementación
+
+Formato JSON estricto:
+[
+  {
+    "id": 1,
+    "titulo": "Cambiar canal de X a Y",
+    "descripcion": "Descripción técnica específica",
+    "prioridad": "ALTA",
+    "impacto_estimado": "25%",
+    "pasos": ["paso 1", "paso 2", "paso 3"]
+  }
+]`;
 
       const response = await invokeLLM({
         messages: [
-          { role: "system" as const, content: "Eres un experto en optimización de redes WiFi. Proporciona recomendaciones prácticas y medibles." },
+          { role: "system" as const, content: "Eres un experto en optimización de redes WiFi. Proporciona recomendaciones ESPECÍFICAS basadas ÚNICAMENTE en los datos reales proporcionados. Cada recomendación debe estar fundamentada en métricas concretas." },
           { role: "user" as const, content: prompt },
         ],
       });
 
       const content = response.choices[0]?.message?.content || "[]";
       try {
-        const recommendations = JSON.parse(typeof content === "string" ? content : "[]");
+        // Extraer JSON del contenido si está envuelto en markdown
+        const jsonMatch = typeof content === "string" ? content.match(/\[[\s\S]*\]/g) : null;
+        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+        const recommendations = JSON.parse(typeof jsonStr === "string" ? jsonStr : "[]");
         return { recommendations };
       } catch {
         return { recommendations: [], rawResponse: content };
       }
+    }),
+
+  // Análisis de interferencia espectral
+  analyzeInterference: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const wifiData = await getWiFiData();
+      if (!wifiData || wifiData.sin_datos) {
+        return { interference: "No hay datos disponibles" };
+      }
+
+      const context = generateWiFiContext(wifiData);
+      const prompt = `Analiza la interferencia espectral en los datos WiFi proporcionados:
+
+${context}
+
+Proporciona:
+1. Matriz de interferencia entre canales
+2. Canales que más interfieren
+3. Canales óptimos no solapados (1, 6, 11)
+4. Recomendaciones para minimizar interferencia
+5. Impacto de la interferencia en pérdida de paquetes`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system" as const, content: "Eres un experto en análisis espectral WiFi 2.4GHz. Proporciona análisis técnico detallado." },
+          { role: "user" as const, content: prompt },
+        ],
+      });
+
+      const interference = response.choices[0]?.message?.content || "No se pudo analizar";
+      return { interference: typeof interference === "string" ? interference : "Error" };
+    }),
+
+  // Predicción de anomalías futuras
+  predictAnomalies: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const wifiData = await getWiFiData();
+      if (!wifiData || wifiData.sin_datos) {
+        return { predictions: "No hay datos disponibles" };
+      }
+
+      const context = generateWiFiContext(wifiData);
+      const prompt = `Basándote en el histórico y tendencias de datos WiFi, predice posibles anomalías futuras:
+
+${context}
+
+Proporciona:
+1. Canales en riesgo de saturación
+2. Patrones de interferencia que podrían empeorar
+3. Predicción de pérdida de paquetes futura
+4. Ventana de tiempo estimada para problemas
+5. Acciones preventivas recomendadas`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system" as const, content: "Eres un experto en predicción de problemas de redes WiFi. Analiza tendencias y proporciona predicciones accionables." },
+          { role: "user" as const, content: prompt },
+        ],
+      });
+
+      const predictions = response.choices[0]?.message?.content || "No se pudo predecir";
+      return { predictions: typeof predictions === "string" ? predictions : "Error" };
     }),
 });

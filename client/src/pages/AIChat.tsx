@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageSquare, Plus, Send, Zap, FileText, Lightbulb, Loader2 } from "lucide-react";
+import { MessageSquare, Plus, Send, Zap, FileText, Lightbulb, Loader2, Radar, TrendingUp } from "lucide-react";
 import { Streamdown } from "streamdown";
 
 export default function AIChat() {
@@ -25,6 +25,8 @@ export default function AIChat() {
   const analyzeWiFiMutation = trpc.ai.analyzeWiFiData.useMutation();
   const generateReportMutation = trpc.ai.generateReport.useMutation();
   const getRecommendationsMutation = trpc.ai.getRecommendations.useMutation();
+  const analyzeInterferenceMutation = trpc.ai.analyzeInterference.useMutation();
+  const predictAnomaliesMutation = trpc.ai.predictAnomalies.useMutation();
 
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -37,6 +39,8 @@ export default function AIChat() {
   const [analysisResult, setAnalysisResult] = useState("");
   const [reportResult, setReportResult] = useState("");
   const [recommendationsResult, setRecommendationsResult] = useState<any[]>([]);
+  const [interferenceResult, setInterferenceResult] = useState("");
+  const [predictionsResult, setPredictionsResult] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -145,6 +149,26 @@ export default function AIChat() {
     }
   };
 
+  const handleAnalyzeInterference = async () => {
+    try {
+      const result = await analyzeInterferenceMutation.mutateAsync();
+      setInterferenceResult(result.interference);
+      toast.success("Análisis de interferencia completado");
+    } catch (error) {
+      toast.error("Error al analizar interferencia");
+    }
+  };
+
+  const handlePredictAnomalies = async () => {
+    try {
+      const result = await predictAnomaliesMutation.mutateAsync();
+      setPredictionsResult(result.predictions);
+      toast.success("Predicciones generadas");
+    } catch (error) {
+      toast.error("Error al generar predicciones");
+    }
+  };
+
   if (loading) {
     return <DashboardLayout><Skeleton className="w-full h-screen" /></DashboardLayout>;
   }
@@ -153,16 +177,18 @@ export default function AIChat() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Asistente IA</h1>
-          <p className="text-muted-foreground">Chat inteligente con análisis de datos WiFi</p>
+          <h1 className="text-3xl font-bold">Asistente IA WiFi Pro</h1>
+          <p className="text-muted-foreground">Chat inteligente con análisis espectral y predicciones</p>
         </div>
 
         <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="chat">💬 Chat</TabsTrigger>
             <TabsTrigger value="analysis">🔍 Análisis</TabsTrigger>
             <TabsTrigger value="report">📄 Reporte</TabsTrigger>
             <TabsTrigger value="recommendations">💡 Recomendaciones</TabsTrigger>
+            <TabsTrigger value="interference">📡 Interferencia</TabsTrigger>
+            <TabsTrigger value="predictions">📈 Predicciones</TabsTrigger>
           </TabsList>
 
           {/* TAB: CHAT */}
@@ -218,7 +244,11 @@ export default function AIChat() {
                 <CardHeader>
                   <CardTitle>Chat</CardTitle>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => setIncludeWiFiContext(!includeWiFiContext)}>
+                    <Badge 
+                      variant="outline" 
+                      className="cursor-pointer" 
+                      onClick={() => setIncludeWiFiContext(!includeWiFiContext)}
+                    >
                       {includeWiFiContext ? "✓" : "✗"} Contexto WiFi
                     </Badge>
                   </div>
@@ -251,7 +281,7 @@ export default function AIChat() {
 
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Escribe tu mensaje..."
+                      placeholder="Escribe tu pregunta sobre WiFi..."
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
@@ -274,7 +304,7 @@ export default function AIChat() {
             <Card>
               <CardHeader>
                 <CardTitle>Análisis Automático de WiFi</CardTitle>
-                <CardDescription>Obtén un análisis detallado del estado actual de tu red</CardDescription>
+                <CardDescription>Análisis detallado del estado actual de tu red</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={handleAnalyzeWiFi} disabled={analyzeWiFiMutation.isPending} className="w-full">
@@ -282,7 +312,7 @@ export default function AIChat() {
                   Analizar Ahora
                 </Button>
                 {analysisResult && (
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border">
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border max-h-[600px] overflow-y-auto">
                     <Streamdown>{analysisResult}</Streamdown>
                   </div>
                 )}
@@ -294,8 +324,8 @@ export default function AIChat() {
           <TabsContent value="report" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Generar Reporte</CardTitle>
-                <CardDescription>Crea un reporte profesional del estado de tu red</CardDescription>
+                <CardTitle>Generar Reporte Profesional</CardTitle>
+                <CardDescription>Reporte completo del estado de tu red WiFi</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={handleGenerateReport} disabled={generateReportMutation.isPending} className="w-full">
@@ -316,7 +346,7 @@ export default function AIChat() {
             <Card>
               <CardHeader>
                 <CardTitle>Recomendaciones de Optimización</CardTitle>
-                <CardDescription>Obtén sugerencias para mejorar tu red WiFi</CardDescription>
+                <CardDescription>Sugerencias específicas basadas en tus datos WiFi</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={handleGetRecommendations} disabled={getRecommendationsMutation.isPending} className="w-full">
@@ -328,19 +358,71 @@ export default function AIChat() {
                     {recommendationsResult.map((rec: any, idx: number) => (
                       <Card key={idx} className="border-l-4 border-l-blue-500">
                         <CardContent className="pt-4">
-                          <div className="flex items-start justify-between">
-                            <div>
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
                               <h3 className="font-semibold">{rec.titulo}</h3>
-                              <p className="text-sm text-muted-foreground mt-1">{rec.descripcion}</p>
-                              <div className="flex gap-2 mt-2">
-                                <Badge variant="outline">{rec.prioridad}</Badge>
-                                <Badge variant="secondary">Impacto: {rec.impacto_estimado}</Badge>
-                              </div>
+                              <Badge variant="outline">{rec.prioridad}</Badge>
                             </div>
+                            <p className="text-sm text-muted-foreground">{rec.descripcion}</p>
+                            <div className="flex gap-2">
+                              <Badge variant="secondary">Impacto: {rec.impacto_estimado}</Badge>
+                            </div>
+                            {rec.pasos && (
+                              <div className="text-sm">
+                                <p className="font-semibold">Pasos:</p>
+                                <ol className="list-decimal list-inside space-y-1">
+                                  {rec.pasos.map((paso: string, i: number) => (
+                                    <li key={i}>{paso}</li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB: INTERFERENCIA */}
+          <TabsContent value="interference" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Análisis de Interferencia Espectral</CardTitle>
+                <CardDescription>Análisis detallado de solapamiento entre canales</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handleAnalyzeInterference} disabled={analyzeInterferenceMutation.isPending} className="w-full">
+                  {analyzeInterferenceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Radar className="w-4 h-4 mr-2" />}
+                  Analizar Interferencia
+                </Button>
+                {interferenceResult && (
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border max-h-[600px] overflow-y-auto">
+                    <Streamdown>{interferenceResult}</Streamdown>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB: PREDICCIONES */}
+          <TabsContent value="predictions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Predicción de Anomalías Futuras</CardTitle>
+                <CardDescription>Predicciones basadas en tendencias históricas</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handlePredictAnomalies} disabled={predictAnomaliesMutation.isPending} className="w-full">
+                  {predictAnomaliesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <TrendingUp className="w-4 h-4 mr-2" />}
+                  Generar Predicciones
+                </Button>
+                {predictionsResult && (
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border max-h-[600px] overflow-y-auto">
+                    <Streamdown>{predictionsResult}</Streamdown>
                   </div>
                 )}
               </CardContent>
