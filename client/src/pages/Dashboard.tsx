@@ -1,8 +1,9 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { useSocketContext } from "@/contexts/SocketContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -28,14 +29,31 @@ const mockPieData = [
 export default function Dashboard() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const { isConnected, on } = useSocketContext();
   const metricsQuery = trpc.dashboard.getMetrics.useQuery();
   const notificationsQuery = trpc.notifications.getUnread.useQuery();
+  const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate("/");
     }
   }, [loading, isAuthenticated, navigate]);
+
+  // Escuchar notificaciones en tiempo real
+  useEffect(() => {
+    const unsubscribe = on("notification:new", (notification: any) => {
+      setLiveNotifications((prev) => [notification, ...prev].slice(0, 5));
+    });
+    return () => unsubscribe?.();
+  }, [on]);
+
+  // Actualizar datos iniciales
+  useEffect(() => {
+    if (notificationsQuery.data) {
+      setLiveNotifications(notificationsQuery.data);
+    }
+  }, [notificationsQuery.data]);
 
   if (loading) {
     return (
@@ -51,9 +69,17 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bienvenido, {user?.name || "Usuario"}</h1>
-          <p className="text-muted-foreground mt-2">Resumen de actividad y métricas clave del sistema</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Bienvenido, {user?.name || "Usuario"}</h1>
+            <p className="text-muted-foreground mt-2">Resumen de actividad y métricas clave del sistema</p>
+          </div>
+          {isConnected && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              En Vivo
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -172,14 +198,15 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {notificationsQuery.data && notificationsQuery.data.length > 0 && (
+        {liveNotifications && liveNotifications.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Notificaciones Recientes</CardTitle>
+              <CardTitle>Notificaciones en Tiempo Real</CardTitle>
+              <CardDescription>{isConnected ? "Conectado - Recibiendo actualizaciones en vivo" : "Desconectado"}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {notificationsQuery.data.slice(0, 5).map((notification) => (
+                {liveNotifications.slice(0, 5).map((notification) => (
                   <div key={notification.id} className="flex items-start gap-4 pb-4 border-b last:border-b-0">
                     <div className={`w-2 h-2 rounded-full mt-2 ${
                       notification.type === "error" ? "bg-red-500" :

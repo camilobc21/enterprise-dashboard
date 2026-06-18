@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { useSocketContext } from "@/contexts/SocketContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,11 @@ import { Bell, Trash2, CheckCircle, AlertCircle, Info, Plus } from "lucide-react
 export default function Notifications() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const { isConnected, on } = useSocketContext();
   const notificationsQuery = trpc.notifications.getNotifications.useQuery({ limit: 50, offset: 0 });
   const markAsReadMutation = trpc.notifications.markAsRead.useMutation();
   const createNotificationMutation = trpc.notifications.create.useMutation();
+  const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -31,6 +34,22 @@ export default function Notifications() {
       navigate("/");
     }
   }, [loading, isAuthenticated, navigate]);
+
+  // Escuchar notificaciones en tiempo real
+  useEffect(() => {
+    const unsubscribe = on("notification:new", (notification: any) => {
+      setLiveNotifications((prev) => [notification, ...prev]);
+      notificationsQuery.refetch();
+    });
+    return () => unsubscribe?.();
+  }, [on, notificationsQuery]);
+
+  // Actualizar datos iniciales
+  useEffect(() => {
+    if (notificationsQuery.data) {
+      setLiveNotifications(notificationsQuery.data);
+    }
+  }, [notificationsQuery.data]);
 
   const handleMarkAsRead = async (notificationId: number) => {
     try {
@@ -97,7 +116,10 @@ export default function Notifications() {
             <Bell className="h-8 w-8" />
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Notificaciones</h1>
-              <p className="text-muted-foreground mt-2">Gestiona todas tus notificaciones del sistema</p>
+              <p className="text-muted-foreground mt-2">
+                Gestiona todas tus notificaciones del sistema
+                {isConnected && <Badge className="ml-2 bg-green-500">En Vivo</Badge>}
+              </p>
             </div>
           </div>
 
@@ -201,9 +223,9 @@ export default function Notifications() {
           <CardContent>
             {notificationsQuery.isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
+            ) : liveNotifications && liveNotifications.length > 0 ? (
               <div className="space-y-4">
-                {notificationsQuery.data.map((notification: any) => (
+                {liveNotifications.map((notification: any) => (
                   <div
                     key={notification.id}
                     className={`flex items-start gap-4 p-4 rounded-lg border ${
