@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, Wifi, BarChart3, Bell, MessageSquare, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, Wifi, BarChart3, Bell, MessageSquare, FileText, Settings, TrendingUp } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -31,6 +31,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Wifi, label: "WiFi Analysis", path: "/wifi-analysis" },
   { icon: BarChart3, label: "WiFi Networks", path: "/wifi-networks" },
+  { icon: TrendingUp, label: "WiFi Trends", path: "/wifi-trends" },
   { icon: Bell, label: "Notifications", path: "/notifications" },
   { icon: MessageSquare, label: "AI Chat", path: "/ai" },
   { icon: FileText, label: "Documents", path: "/documents" },

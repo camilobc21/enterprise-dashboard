@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,17 +5,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, AlertTriangle, Zap } from "lucide-react";
-import axios from "axios";
-
-const FLASK_API_URL = import.meta.env.VITE_FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
+import { TrendingUp, AlertTriangle, Zap, TrendingDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 
 export default function WiFiTrends() {
   const { user, loading, isAuthenticated } = useAuth();
   const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [channelTrends, setChannelTrends] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [predictions, setPredictions] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState<"24h" | "7d" | "30d">("24h");
+  
+  const dashboardQuery = trpc.wifi.getDashboard.useQuery();
+  const historyQuery = trpc.wifi.getHistory.useQuery();
+  const predictionQuery = trpc.wifi.getPrediction.useQuery();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -25,46 +27,40 @@ export default function WiFiTrends() {
   }, [loading, isAuthenticated]);
 
   useEffect(() => {
-    loadTrendData();
-  }, [timeRange]);
-
-  const loadTrendData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.get(`${FLASK_API_URL}/api/dashboard`, { timeout: 5000 });
-      
-      if (response.data && response.data.historico) {
-        // Procesar datos históricos
-        const processed = response.data.historico.map((h: any, idx: number) => ({
-          timestamp: new Date(h.timestamp).toLocaleTimeString("es-ES"),
-          saturacion: h.saturacion_general || 0,
-          ocupacion: h.ocupacion_espectral || 0,
-          perdida: h.perdida_paquetes || 0,
-          redes: h.total_redes || 0,
-          tendencia: h.tendencia_ia || 0,
-        }));
-
-        setHistoricalData(processed);
-
-        // Procesar tendencias por canal
-        if (response.data.canales) {
-          const channelData = response.data.canales.map((c: any) => ({
-            canal: `Canal ${c.canal}`,
-            saturacion: c.saturacion || 0,
-            ocupacion: c.ocupacion_espectral || 0,
-            interferencia: c.interferencia_adyacente || 0,
-            perdida: c.perdida_paquetes || 0,
-            riesgo: c.riesgo_anomalia || 0,
-          }));
-          setChannelTrends(channelData);
-        }
-      }
-    } catch (error) {
-      console.error("Error cargando datos de tendencias:", error);
-    } finally {
-      setIsLoading(false);
+    if (dashboardQuery.data?.historico) {
+      const processed = dashboardQuery.data.historico.map((h: any) => ({
+        timestamp: new Date(h.timestamp).toLocaleTimeString("es-ES"),
+        saturacion: h.saturacion_general || 0,
+        ocupacion: h.ocupacion_espectral || 0,
+        perdida: h.perdida_paquetes || 0,
+        redes: h.total_redes || 0,
+        tendencia: h.tendencia_ia || 0,
+      }));
+      setHistoricalData(processed);
     }
-  };
+  }, [dashboardQuery.data]);
+
+  useEffect(() => {
+    if (dashboardQuery.data?.canales) {
+      const channelData = dashboardQuery.data.canales.map((c: any) => ({
+        canal: `Canal ${c.canal}`,
+        saturacion: c.saturacion || 0,
+        ocupacion: c.ocupacion_espectral || 0,
+        interferencia: c.interferencia_adyacente || 0,
+        perdida: c.perdida_paquetes || 0,
+        riesgo: c.riesgo_anomalia || 0,
+      }));
+      setChannelTrends(channelData);
+    }
+  }, [dashboardQuery.data?.canales]);
+
+  useEffect(() => {
+    if (predictionQuery.data) {
+      setPredictions([predictionQuery.data]);
+    }
+  }, [predictionQuery.data]);
+
+  const isLoading = dashboardQuery.isLoading || historyQuery.isLoading;
 
   if (loading) {
     return <DashboardLayout><Skeleton className="w-full h-screen" /></DashboardLayout>;
@@ -96,11 +92,12 @@ export default function WiFiTrends() {
         </div>
 
         <Tabs defaultValue="saturacion" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="saturacion">Saturación</TabsTrigger>
             <TabsTrigger value="ocupacion">Ocupación</TabsTrigger>
             <TabsTrigger value="perdida">Pérdida</TabsTrigger>
             <TabsTrigger value="canales">Canales</TabsTrigger>
+            <TabsTrigger value="predicciones">Predicciones</TabsTrigger>
             <TabsTrigger value="alertas">Alertas</TabsTrigger>
           </TabsList>
 
@@ -233,6 +230,50 @@ export default function WiFiTrends() {
                       <Bar dataKey="interferencia" fill="#f97316" name="Interferencia" />
                     </BarChart>
                   </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB: PREDICCIONES */}
+          <TabsContent value="predicciones" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Predicciones de Tendencias</CardTitle>
+                <CardDescription>Proyección de saturación y anomalías futuras</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {predictionQuery.isLoading ? (
+                  <Skeleton className="w-full h-[400px]" />
+                ) : predictions.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg bg-blue-50">
+                        <p className="text-sm text-muted-foreground">Saturación Predicha (24h)</p>
+                        <p className="text-2xl font-bold text-blue-600">{Math.round(predictions[0]?.saturacion_predicha || 0)}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">Tendencia: {predictions[0]?.tendencia_ia > 0 ? "📈 Aumentando" : "📉 Disminuyendo"}</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-amber-50">
+                        <p className="text-sm text-muted-foreground">Riesgo de Anomalía</p>
+                        <p className="text-2xl font-bold text-amber-600">{Math.round((predictions[0]?.riesgo_anomalia || 0) * 100)}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">Probabilidad en 24h</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-green-50">
+                        <p className="text-sm text-muted-foreground">Canal Óptimo Predicho</p>
+                        <p className="text-2xl font-bold text-green-600">Canal {predictions[0]?.canal_optimo_predicho || 6}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Menor interferencia</p>
+                      </div>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-muted/50">
+                      <p className="text-sm font-semibold mb-2">Análisis Predictivo</p>
+                      <p className="text-sm text-muted-foreground">{predictions[0]?.analisis_prediccion || "Analizando patrones de red..."}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <TrendingDown className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Sin datos de predicción disponibles</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

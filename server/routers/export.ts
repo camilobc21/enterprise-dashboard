@@ -1,5 +1,7 @@
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
+import { PDFDocument, PDFPage, rgb } from "pdf-lib";
+import { Buffer } from "buffer";
 
 export const exportRouter = router({
   // Generar PDF de reporte WiFi
@@ -185,14 +187,182 @@ export const exportRouter = router({
           </html>
         `;
 
-        return {
-          success: true,
-          html: htmlContent,
-          filename: `wifi-report-${Date.now()}.html`,
-        };
+        // Generar PDF usando pdf-lib
+        try {
+          const pdfDoc = await PDFDocument.create();
+          const page = pdfDoc.addPage([612, 792]); // Tamaño Letter
+          const { height } = page.getSize();
+          let yPosition = height - 50;
+
+          // Colores
+          const darkBlue = rgb(30 / 255, 64 / 255, 175 / 255);
+          const lightBlue = rgb(59 / 255, 130 / 255, 246 / 255);
+          const black = rgb(0, 0, 0);
+          const gray = rgb(102 / 255, 102 / 255, 102 / 255);
+
+          // Encabezado
+          page.drawText(input.title, {
+            x: 50,
+            y: yPosition,
+            size: 24,
+            color: darkBlue,
+            maxWidth: 512,
+          });
+          yPosition -= 30;
+
+          page.drawText("Reporte de Análisis WiFi IA Pro", {
+            x: 50,
+            y: yPosition,
+            size: 12,
+            color: gray,
+          });
+          yPosition -= 20;
+
+          page.drawText(`Generado: ${new Date(input.data.timestamp).toLocaleString("es-ES")}`, {
+            x: 50,
+            y: yPosition,
+            size: 10,
+            color: gray,
+          });
+          yPosition -= 40;
+
+          // Línea separadora
+          page.drawLine({
+            start: { x: 50, y: yPosition },
+            end: { x: 562, y: yPosition },
+            thickness: 2,
+            color: lightBlue,
+          });
+          yPosition -= 30;
+
+          // Métricas Generales
+          page.drawText("Métricas Generales", {
+            x: 50,
+            y: yPosition,
+            size: 14,
+            color: darkBlue,
+          });
+          yPosition -= 25;
+
+          const metrics = [
+            { label: "Saturación General", value: `${input.data.saturacion.toFixed(1)}%` },
+            { label: "Ocupación Espectral", value: `${input.data.ocupacion.toFixed(1)}%` },
+            { label: "Pérdida de Paquetes", value: `${input.data.perdida.toFixed(1)}%` },
+          ];
+
+          metrics.forEach((metric, idx) => {
+            const xPos = 50 + idx * 170;
+            page.drawText(metric.label, {
+              x: xPos,
+              y: yPosition,
+              size: 10,
+              color: gray,
+            });
+            page.drawText(metric.value, {
+              x: xPos,
+              y: yPosition - 20,
+              size: 16,
+              color: darkBlue,
+            });
+          });
+          yPosition -= 60;
+
+          // Análisis por Canal
+          page.drawText("Análisis por Canal", {
+            x: 50,
+            y: yPosition,
+            size: 14,
+            color: darkBlue,
+          });
+          yPosition -= 25;
+
+          // Tabla de canales
+          const tableHeaders = ["Canal", "Saturación", "Interferencia", "Riesgo"];
+          const colWidths = [100, 130, 130, 100];
+          let xPos = 50;
+
+          tableHeaders.forEach((header, idx) => {
+            page.drawText(header, {
+              x: xPos,
+              y: yPosition,
+              size: 10,
+              color: rgb(1, 1, 1),
+            });
+            xPos += colWidths[idx];
+          });
+          yPosition -= 20;
+
+          // Filas de canales
+          input.data.canales.slice(0, 5).forEach((canal) => {
+            xPos = 50;
+            const rowData = [
+              `Canal ${canal.canal}`,
+              `${canal.saturacion.toFixed(1)}%`,
+              `${canal.interferencia.toFixed(1)}%`,
+              canal.riesgo,
+            ];
+            rowData.forEach((data, idx) => {
+              page.drawText(data, {
+                x: xPos,
+                y: yPosition,
+                size: 9,
+                color: black,
+              });
+              xPos += colWidths[idx];
+            });
+            yPosition -= 15;
+          });
+          yPosition -= 20;
+
+          // Recomendaciones
+          page.drawText("Recomendaciones", {
+            x: 50,
+            y: yPosition,
+            size: 14,
+            color: darkBlue,
+          });
+          yPosition -= 20;
+
+          input.data.recomendaciones.slice(0, 4).forEach((rec) => {
+            page.drawText(`* ${rec}`, {
+              x: 60,
+              y: yPosition,
+              size: 9,
+              color: black,
+              maxWidth: 500,
+            });
+            yPosition -= 15;
+          });
+
+          // Footer
+          page.drawText("Este reporte fue generado automáticamente por el sistema WiFi IA Pro", {
+            x: 50,
+            y: 30,
+            size: 8,
+            color: gray,
+          });
+
+          const pdfBytes = await pdfDoc.save();
+          const base64Pdf = Buffer.from(pdfBytes).toString("base64");
+
+          return {
+            success: true,
+            pdf: base64Pdf,
+            filename: `wifi-report-${Date.now()}.pdf`,
+            mimeType: "application/pdf",
+          };
+        } catch (pdfError) {
+          console.error("[Export] Error generando PDF:", pdfError);
+          // Fallback a HTML si falla PDF
+          return {
+            success: true,
+            html: htmlContent,
+            filename: `wifi-report-${Date.now()}.html`,
+          };
+        }
       } catch (error) {
-        console.error("[Export] Error generando PDF:", error);
-        throw new Error("Error generando reporte PDF");
+        console.error("[Export] Error generando reporte:", error);
+        throw new Error("Error generando reporte");
       }
     }),
 

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Wifi, Signal, Lock, Zap } from "lucide-react";
+import { Wifi, Signal, Lock, Zap, AlertCircle, TrendingDown } from "lucide-react";
 
 export default function WiFiNetworks() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -46,6 +46,16 @@ export default function WiFiNetworks() {
       return <Badge className="bg-green-100 text-green-800">No Solapado</Badge>;
     }
     return <Badge className="bg-yellow-100 text-yellow-800">Solapado</Badge>;
+  };
+
+  const dashboardQuery = trpc.wifi.getDashboard.useQuery();
+
+  const getChannelHealth = (saturacion: number, ocupacion: number, interferencia: number) => {
+    const score = (saturacion * 0.4 + ocupacion * 0.3 + interferencia * 0.3);
+    if (score < 30) return { label: "Excelente", color: "bg-green-100 border-green-300", textColor: "text-green-700" };
+    if (score < 50) return { label: "Bueno", color: "bg-blue-100 border-blue-300", textColor: "text-blue-700" };
+    if (score < 70) return { label: "Regular", color: "bg-yellow-100 border-yellow-300", textColor: "text-yellow-700" };
+    return { label: "Congestionado", color: "bg-red-100 border-red-300", textColor: "text-red-700" };
   };
 
   if (loading) {
@@ -148,7 +158,6 @@ export default function WiFiNetworks() {
                       <TableHead>Canal</TableHead>
                       <TableHead>Señal (dBm)</TableHead>
                       <TableHead>Calidad</TableHead>
-                      <TableHead>Ancho Banda</TableHead>
                       <TableHead>Encriptación</TableHead>
                       <TableHead>Tipo</TableHead>
                     </TableRow>
@@ -167,7 +176,6 @@ export default function WiFiNetworks() {
                               <span className={`text-sm font-medium ${signal.color}`}>{signal.label}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{network.ancho_banda} MHz</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               {network.encriptacion !== "Abierta" && (
@@ -195,33 +203,55 @@ export default function WiFiNetworks() {
         <Card>
           <CardHeader>
             <CardTitle>Información de Canales</CardTitle>
-            <CardDescription>Canales WiFi 2.4 GHz y su estado</CardDescription>
+            <CardDescription>Canales WiFi 2.4 GHz con datos en tiempo real</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((canal) => {
-                const isNonOverlapping = [1, 6, 11].includes(canal);
-                const redes = networksQuery.data?.filter((n: any) => n.canal === canal).length || 0;
-                return (
-                  <div
-                    key={canal}
-                    className={`p-3 rounded-lg border text-center ${
-                      isNonOverlapping
-                        ? "bg-green-50 border-green-200"
-                        : "bg-yellow-50 border-yellow-200"
-                    }`}
-                  >
-                    <p className="font-bold text-lg">{canal}</p>
-                    <p className="text-xs text-muted-foreground">{redes} redes</p>
-                    {isNonOverlapping && (
-                      <Badge className="mt-1 bg-green-100 text-green-800 text-xs">
-                        Óptimo
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            {dashboardQuery.isLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : dashboardQuery.data?.canales && dashboardQuery.data.canales.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                {dashboardQuery.data.canales.map((canalData: any) => {
+                  const isNonOverlapping = [1, 6, 11].includes(canalData.canal);
+                  const health = getChannelHealth(
+                    canalData.saturacion || 0,
+                    canalData.ocupacion_espectral || 0,
+                    canalData.interferencia_adyacente || 0
+                  );
+                  const redes = canalData.cantidad_redes || 0;
+                  const hasAnomaly = canalData.anomalia === 1;
+
+                  return (
+                    <div
+                      key={canalData.canal}
+                      className={`p-4 rounded-lg border-2 text-center transition-all ${
+                        health.color
+                      } ${hasAnomaly ? "ring-2 ring-red-500" : ""}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-bold text-lg">{canalData.canal}</p>
+                        {hasAnomaly && <AlertCircle className="h-4 w-4 text-red-500" />}
+                      </div>
+                      <p className={`text-xs font-medium ${health.textColor}`}>{health.label}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{redes} redes</p>
+                      <div className="mt-2 space-y-1 text-xs">
+                        <p className="text-muted-foreground">Sat: {Math.round(canalData.saturacion || 0)}%</p>
+                        <p className="text-muted-foreground">Ocup: {Math.round(canalData.ocupacion_espectral || 0)}%</p>
+                      </div>
+                      {isNonOverlapping && (
+                        <Badge className="mt-2 bg-green-600 text-white text-xs">
+                          Óptimo
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <TrendingDown className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Sin datos de canales disponibles</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
