@@ -152,26 +152,46 @@ export async function createAuditLog(data: InsertAuditLog) {
 export async function getUserNotifications(userId: number, limit: number = 20, offset: number = 0) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(limit).offset(offset);
+  try {
+    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(limit).offset(offset);
+  } catch (error) {
+    console.error("[Database] Error getting user notifications:", error);
+    return [];
+  }
 }
 
 export async function getUnreadNotifications(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  try {
+    return await db.select().from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  } catch (error) {
+    console.error("[Database] Error getting unread notifications:", error);
+    return [];
+  }
 }
 
 export async function createNotification(data: InsertNotification) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(notifications).values(data);
+  try {
+    return await db.insert(notifications).values(data);
+  } catch (error) {
+    console.error("[Database] Error creating notification:", error);
+    return null;
+  }
 }
 
 export async function markNotificationAsRead(notificationId: number) {
   const db = await getDb();
   if (!db) return false;
-  await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, notificationId));
-  return true;
+  try {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, notificationId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Error marking notification as read:", error);
+    return false;
+  }
 }
 
 // Documents

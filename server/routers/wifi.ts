@@ -1,6 +1,6 @@
-import { publicProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import axios from "axios";
+import { publicProcedure, router } from "../_core/trpc";
 
 // URL de la API Flask (ajustar según tu configuración)
 const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
@@ -66,12 +66,21 @@ export const wifiRouter = router({
   // Obtener datos del dashboard WiFi
   getDashboard: publicProcedure.query(async () => {
     try {
-      const response = await axios.get(`${FLASK_API_URL}/api/dashboard`);
+      const response = await axios.get(`${FLASK_API_URL}/api/dashboard`, { timeout: 5000 });
       const data = DashboardDataSchema.parse(response.data);
       return data;
     } catch (error) {
-      console.error("[WiFi] Error fetching dashboard:", error);
-      throw new Error("No se pudo conectar con la API Flask");
+      console.warn("[WiFi] Error fetching dashboard:", error instanceof Error ? error.message : error);
+      // Retornar datos vacíos en lugar de lanzar error
+      return {
+        ok: false,
+        sin_datos: true,
+        redes: [],
+        canales: [],
+        alertas: [],
+        historico: [],
+        anomalias_futuras: [],
+      };
     }
   }),
 
