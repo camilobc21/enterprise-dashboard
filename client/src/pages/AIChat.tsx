@@ -13,7 +13,7 @@ import { Send, FileDown, BarChart3, AlertCircle, Lightbulb, Zap } from "lucide-r
 import { Streamdown } from "streamdown";
 import axios from "axios";
 
-const FLASK_API_URL = process.env.VITE_FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
+const FLASK_API_URL = import.meta.env.VITE_FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
 
 export default function AIChat() {
   const { user, loading, isAuthenticated } = useAuth();

@@ -9,7 +9,7 @@ import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Cartesia
 import { TrendingUp, AlertTriangle, Zap } from "lucide-react";
 import axios from "axios";
 
-const FLASK_API_URL = process.env.VITE_FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
+const FLASK_API_URL = import.meta.env.VITE_FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
 
 export default function WiFiTrends() {
   const { user, loading, isAuthenticated } = useAuth();
