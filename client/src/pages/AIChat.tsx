@@ -1,7 +1,7 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect, useState, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,16 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageSquare, Plus, Send } from "lucide-react";
+import { MessageSquare, Plus, Send, Zap, FileText, Lightbulb, Loader2 } from "lucide-react";
 import { Streamdown } from "streamdown";
 
 export default function AIChat() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  
   const conversationsQuery = trpc.ai.getConversations.useQuery();
   const createConversationMutation = trpc.ai.createConversation.useMutation();
   const sendMessageMutation = trpc.ai.sendMessage.useMutation();
+  const analyzeWiFiMutation = trpc.ai.analyzeWiFiData.useMutation();
+  const generateReportMutation = trpc.ai.generateReport.useMutation();
+  const getRecommendationsMutation = trpc.ai.getRecommendations.useMutation();
 
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -27,6 +32,11 @@ export default function AIChat() {
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [conversationTitle, setConversationTitle] = useState("");
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [includeWiFiContext, setIncludeWiFiContext] = useState(true);
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [reportResult, setReportResult] = useState("");
+  const [recommendationsResult, setRecommendationsResult] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,147 +97,156 @@ export default function AIChat() {
     const userMessage = messageInput;
     setMessageInput("");
     setMessages([...messages, { role: "user", content: userMessage }]);
+    setIsSendingMessage(true);
 
     try {
       const response = await sendMessageMutation.mutateAsync({
         conversationId: selectedConversationId,
         message: userMessage,
+        includeWiFiContext,
       });
 
       setMessages((prev) => [...prev, { role: "assistant", content: response.assistantMessage }]);
       toast.success("Mensaje enviado");
     } catch (error) {
       toast.error("Error al enviar mensaje");
-      setMessages((prev) => prev.filter((msg) => msg.content !== userMessage));
-      setMessageInput(userMessage);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleAnalyzeWiFi = async () => {
+    try {
+      const result = await analyzeWiFiMutation.mutateAsync();
+      setAnalysisResult(result.analysis);
+      toast.success("Análisis completado");
+    } catch (error) {
+      toast.error("Error al analizar WiFi");
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      const result = await generateReportMutation.mutateAsync({ format: "markdown" });
+      setReportResult(result.report);
+      toast.success("Reporte generado");
+    } catch (error) {
+      toast.error("Error al generar reporte");
+    }
+  };
+
+  const handleGetRecommendations = async () => {
+    try {
+      const result = await getRecommendationsMutation.mutateAsync();
+      setRecommendationsResult(result.recommendations);
+      toast.success("Recomendaciones obtenidas");
+    } catch (error) {
+      toast.error("Error al obtener recomendaciones");
     }
   };
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </DashboardLayout>
-    );
+    return <DashboardLayout><Skeleton className="w-full h-screen" /></DashboardLayout>;
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-8 w-8" />
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Asistente IA</h1>
-              <p className="text-muted-foreground mt-2">Chat inteligente con Claude API</p>
-            </div>
-          </div>
-
-          <Dialog open={isCreatingConversation} onOpenChange={setIsCreatingConversation}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nueva Conversación
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Crear Nueva Conversación</DialogTitle>
-                <DialogDescription>Dale un título a tu nueva conversación</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Título de la conversación"
-                  value={conversationTitle}
-                  onChange={(e) => setConversationTitle(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleCreateConversation()}
-                />
-                <Button
-                  onClick={handleCreateConversation}
-                  className="w-full"
-                  disabled={createConversationMutation.isPending}
-                >
-                  {createConversationMutation.isPending ? "Creando..." : "Crear"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Asistente IA</h1>
+          <p className="text-muted-foreground">Chat inteligente con análisis de datos WiFi</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">Conversaciones</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96">
-                <div className="space-y-2">
-                  {conversationsQuery.isLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : conversationsQuery.data && conversationsQuery.data.length > 0 ? (
-                    conversationsQuery.data.map((conv) => (
-                      <Button
-                        key={conv.id}
-                        variant={selectedConversationId === conv.id ? "default" : "outline"}
-                        className="w-full justify-start text-left"
-                        onClick={() => setSelectedConversationId(conv.id)}
-                      >
-                        <span className="truncate">{conv.title || "Sin título"}</span>
-                      </Button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No hay conversaciones</p>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="chat" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="chat">💬 Chat</TabsTrigger>
+            <TabsTrigger value="analysis">🔍 Análisis</TabsTrigger>
+            <TabsTrigger value="report">📄 Reporte</TabsTrigger>
+            <TabsTrigger value="recommendations">💡 Recomendaciones</TabsTrigger>
+          </TabsList>
 
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Chat</CardTitle>
-              <CardDescription>
-                {selectedConversationId ? "Conversación activa" : "Selecciona una conversación"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col h-96">
-              {isLoadingMessages ? (
-                <Skeleton className="h-full w-full" />
-              ) : (
-                <>
-                  <ScrollArea className="flex-1 mb-4 pr-4" ref={scrollRef}>
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p>Inicia una conversación</p>
-                        </div>
-                      ) : (
-                        messages.map((msg, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                          >
-                            <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                msg.role === "user"
-                                  ? "bg-blue-500 text-white"
-                                  : "bg-slate-200 text-slate-900"
-                              }`}
-                            >
-                              {msg.role === "assistant" ? (
-                                <Streamdown>{msg.content}</Streamdown>
-                              ) : (
-                                <p>{msg.content}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
+          {/* TAB: CHAT */}
+          <TabsContent value="chat" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* Conversaciones */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="text-lg">Conversaciones</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Dialog open={isCreatingConversation} onOpenChange={setIsCreatingConversation}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full" size="sm">
+                        <Plus className="w-4 h-4 mr-2" /> Nueva
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Nueva Conversación</DialogTitle>
+                      </DialogHeader>
+                      <Input
+                        placeholder="Título (opcional)"
+                        value={conversationTitle}
+                        onChange={(e) => setConversationTitle(e.target.value)}
+                      />
+                      <Button onClick={handleCreateConversation} className="w-full">
+                        Crear
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
+
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {conversationsQuery.data?.map((conv: any) => (
+                        <Button
+                          key={conv.id}
+                          variant={selectedConversationId === conv.id ? "default" : "outline"}
+                          className="w-full justify-start text-left"
+                          onClick={() => setSelectedConversationId(conv.id)}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          <span className="truncate">{conv.title}</span>
+                        </Button>
+                      ))}
                     </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* Chat */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Chat</CardTitle>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="cursor-pointer" onClick={() => setIncludeWiFiContext(!includeWiFiContext)}>
+                      {includeWiFiContext ? "✓" : "✗"} Contexto WiFi
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ScrollArea
+                    ref={scrollRef}
+                    className="h-[400px] border rounded-lg p-4 space-y-4"
+                  >
+                    {isLoadingMessages ? (
+                      <Skeleton className="w-full h-20" />
+                    ) : messages.length === 0 ? (
+                      <p className="text-muted-foreground text-center">Selecciona una conversación para comenzar</p>
+                    ) : (
+                      messages.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                          <div
+                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              msg.role === "user"
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200 text-black dark:bg-gray-700 dark:text-white"
+                            }`}
+                          >
+                            <Streamdown>{msg.content}</Streamdown>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </ScrollArea>
 
                   <div className="flex gap-2">
@@ -236,21 +255,98 @@ export default function AIChat() {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                      disabled={!selectedConversationId || sendMessageMutation.isPending}
+                      disabled={isSendingMessage}
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!selectedConversationId || sendMessageMutation.isPending}
-                      className="gap-2"
+                      disabled={isSendingMessage || !selectedConversationId}
                     >
-                      <Send className="h-4 w-4" />
+                      {isSendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </Button>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* TAB: ANÁLISIS */}
+          <TabsContent value="analysis" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Análisis Automático de WiFi</CardTitle>
+                <CardDescription>Obtén un análisis detallado del estado actual de tu red</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handleAnalyzeWiFi} disabled={analyzeWiFiMutation.isPending} className="w-full">
+                  {analyzeWiFiMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                  Analizar Ahora
+                </Button>
+                {analysisResult && (
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border">
+                    <Streamdown>{analysisResult}</Streamdown>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB: REPORTE */}
+          <TabsContent value="report" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generar Reporte</CardTitle>
+                <CardDescription>Crea un reporte profesional del estado de tu red</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handleGenerateReport} disabled={generateReportMutation.isPending} className="w-full">
+                  {generateReportMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
+                  Generar Reporte
+                </Button>
+                {reportResult && (
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border max-h-[600px] overflow-y-auto">
+                    <Streamdown>{reportResult}</Streamdown>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB: RECOMENDACIONES */}
+          <TabsContent value="recommendations" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recomendaciones de Optimización</CardTitle>
+                <CardDescription>Obtén sugerencias para mejorar tu red WiFi</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handleGetRecommendations} disabled={getRecommendationsMutation.isPending} className="w-full">
+                  {getRecommendationsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lightbulb className="w-4 h-4 mr-2" />}
+                  Obtener Recomendaciones
+                </Button>
+                {recommendationsResult.length > 0 && (
+                  <div className="space-y-3">
+                    {recommendationsResult.map((rec: any, idx: number) => (
+                      <Card key={idx} className="border-l-4 border-l-blue-500">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-semibold">{rec.titulo}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">{rec.descripcion}</p>
+                              <div className="flex gap-2 mt-2">
+                                <Badge variant="outline">{rec.prioridad}</Badge>
+                                <Badge variant="secondary">Impacto: {rec.impacto_estimado}</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
