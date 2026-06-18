@@ -18,8 +18,8 @@ export interface SocketEvents {
 export function useSocket() {
   const { user } = useAuth();
   const socketRef = useRef<Socket | null>(null);
+  const listenersRef = useRef<Map<string, Set<Function>>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
-  const [listeners, setListeners] = useState<Map<string, Set<Function>>>(new Map());
 
   useEffect(() => {
     if (!user) return;
@@ -71,23 +71,15 @@ export function useSocket() {
       socketRef.current.on(event, callback as any);
 
       // Guardar listener para limpieza
-      setListeners((prev) => {
-        const newListeners = new Map(prev);
-        if (!newListeners.has(event)) {
-          newListeners.set(event, new Set());
-        }
-        newListeners.get(event)!.add(callback);
-        return newListeners;
-      });
+      if (!listenersRef.current.has(event)) {
+        listenersRef.current.set(event, new Set());
+      }
+      listenersRef.current.get(event)!.add(callback);
 
       // Retornar función para desuscribirse
       return () => {
         socketRef.current?.off(event, callback as any);
-        setListeners((prev) => {
-          const newListeners = new Map(prev);
-          newListeners.get(event)?.delete(callback);
-          return newListeners;
-        });
+        listenersRef.current.get(event)?.delete(callback);
       };
     },
     []
