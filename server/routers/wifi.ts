@@ -3,7 +3,7 @@ import axios from "axios";
 import { publicProcedure, router } from "../_core/trpc";
 
 // URL de la API Flask (ajustar según tu configuración)
-const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
+const FLASK_API_URL = process.env.FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
 
 // Esquemas de validación
 const WifiNetworkSchema = z.object({
