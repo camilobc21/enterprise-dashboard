@@ -18,11 +18,11 @@ export default function WiFiAnalysis() {
   const { isConnected } = useSocketContext();
 
   // Consultas tRPC
-  const dashboardQuery = trpc.wifi.getDashboard.useQuery();
-  const channelsQuery = trpc.wifi.getChannels.useQuery();
-  const alertsQuery = trpc.wifi.getAlerts.useQuery();
-  const predictionQuery = trpc.wifi.getPrediction.useQuery();
-  const healthQuery = trpc.wifi.healthCheck.useQuery();
+  const dashboardQuery = trpc.wifi.getDashboard.useQuery(undefined, { enabled: true });
+  const channelsQuery = trpc.wifi.getChannels.useQuery(undefined, { enabled: true });
+  const alertsQuery = trpc.wifi.getAlerts.useQuery(undefined, { enabled: true });
+  const predictionQuery = trpc.wifi.getPrediction.useQuery(undefined, { enabled: true });
+  const healthQuery = trpc.wifi.healthCheck.useQuery(undefined, { enabled: true });
 
   const [chartData, setChartData] = useState<any[]>([]);
   const [radarData, setRadarData] = useState<any[]>([]);
