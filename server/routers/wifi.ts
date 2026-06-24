@@ -107,20 +107,19 @@ export const wifiRouter = router({
         const db = await getDb();
         if (!db) return [];
 
-        let query = db
-          .select()
-          .from(wifiAlerts)
-          .where(eq(wifiAlerts.userId, ctx.user.id));
-
+        const conditions = [eq(wifiAlerts.userId, ctx.user.id)];
         if (input.resolved !== undefined) {
-          query = query.where(eq(wifiAlerts.resuelta, input.resolved));
+          conditions.push(eq(wifiAlerts.resuelta, input.resolved));
         }
 
-        const alerts = await query
+        const alerts = await db
+          .select()
+          .from(wifiAlerts)
+          .where(and(...conditions))
           .orderBy(desc(wifiAlerts.timestamp))
           .limit(input.limit);
 
-        return alerts;
+        return alerts || [];
       } catch (error) {
         console.error("[WiFi] Error fetching alerts:", error);
         return [];
@@ -128,7 +127,9 @@ export const wifiRouter = router({
     }),
 
   // Obtener predicción más reciente
-  getPrediction: protectedProcedure.query(async ({ ctx }) => {
+  getPrediction: protectedProcedure
+    .input(z.void().optional())
+    .query(async ({ ctx }) => {
     try {
       const db = await getDb();
       if (!db) return null;
@@ -148,7 +149,9 @@ export const wifiRouter = router({
   }),
 
   // Obtener dashboard completo (datos actuales + histórico)
-  getDashboard: protectedProcedure.query(async ({ ctx }) => {
+  getDashboard: protectedProcedure
+    .input(z.void().optional())
+    .query(async ({ ctx }) => {
     try {
       const db = await getDb();
       if (!db) {
@@ -265,30 +268,30 @@ export const wifiRouter = router({
         if (!db) throw new Error("Database not available");
 
         // Crear escaneo
-        const scan = await db.insert(wifiScans).values({
+        const scan = await db.insert(wifiScans).values([{
           userId: ctx.user.id,
-          saturacionGeneral: input.saturacionGeneral,
-          ocupacionEspectral: input.ocupacionEspectral,
-          perdidaPaquetes: input.perdidaPaquetes,
+          saturacionGeneral: String(input.saturacionGeneral),
+          ocupacionEspectral: String(input.ocupacionEspectral),
+          perdidaPaquetes: String(input.perdidaPaquetes),
           totalRedes: input.totalRedes,
-          tendenciaIA: input.tendenciaIA,
+          tendenciaIA: input.tendenciaIA ? String(input.tendenciaIA) : undefined,
           canalOptimo: input.canalOptimo,
-        });
+        }]);
 
-        const scanId = scan[0].insertId;
+        const scanId = (scan as any)[0]?.insertId || 0;
 
         // Crear canales
         for (const canal of input.canales) {
-          await db.insert(wifiChannels).values({
+          await db.insert(wifiChannels).values([{
             scanId: scanId,
             canal: canal.canal,
-            saturacion: canal.saturacion,
-            ocupacionEspectral: canal.ocupacionEspectral,
-            interferencia: canal.interferencia,
-            perdidaPaquetes: canal.perdidaPaquetes,
-            riesgoAnomalia: canal.riesgoAnomalia,
+            saturacion: String(canal.saturacion),
+            ocupacionEspectral: String(canal.ocupacionEspectral),
+            interferencia: canal.interferencia ? String(canal.interferencia) : undefined,
+            perdidaPaquetes: canal.perdidaPaquetes ? String(canal.perdidaPaquetes) : undefined,
+            riesgoAnomalia: canal.riesgoAnomalia ? String(canal.riesgoAnomalia) : undefined,
             rssi: canal.rssi,
-          });
+          }]);
         }
 
         // Detectar alertas automáticamente
@@ -335,14 +338,16 @@ export const wifiRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        const prediction = await db.insert(wifiPredictions).values({
-          userId: ctx.user.id,
-          saturacionPredicha: input.saturacionPredicha,
-          riesgoAnomalia: input.riesgoAnomalia,
-          canalOptimoPredicho: input.canalOptimoPredicho,
-          analisisPrediccion: input.analisisPrediccion,
-          confianza: input.confianza,
-        });
+        const prediction = await db.insert(wifiPredictions).values([
+          {
+            userId: ctx.user.id,
+            saturacionPredicha: String(input.saturacionPredicha),
+            riesgoAnomalia: String(input.riesgoAnomalia),
+            canalOptimoPredicho: input.canalOptimoPredicho,
+            analisisPrediccion: input.analisisPrediccion,
+            confianza: input.confianza ? String(input.confianza) : undefined,
+          }
+        ]);
 
         return { ok: true, predictionId: prediction[0].insertId };
       } catch (error) {
@@ -440,14 +445,14 @@ export const wifiRouter = router({
               gte(wifiAlerts.timestamp, startDate)
             )
           );
-        const alertCount = alertsData.length;
+        const alertCount = alertsData?.length || 0;
 
         return {
           avgSaturacion: Math.round(avgSaturacion * 100) / 100,
           avgOcupacion: Math.round(avgOcupacion * 100) / 100,
           avgPerdida: Math.round(avgPerdida * 100) / 100,
           maxSaturacion: Math.round(maxSaturacion * 100) / 100,
-          alertCount: alertCount.length,
+          alertCount: alertCount,
         };
       } catch (error) {
         console.error("[WiFi] Error fetching statistics:", error);

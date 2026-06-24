@@ -17,7 +17,7 @@ export default function WiFiTrends() {
   const [timeRange, setTimeRange] = useState<"24h" | "7d" | "30d">("24h");
   
   const dashboardQuery = trpc.wifi.getDashboard.useQuery(undefined, { enabled: true });
-  const historyQuery = trpc.wifi.getHistory.useQuery(undefined, { enabled: true });
+  const historyQuery = trpc.wifi.getHistory.useQuery({ timeRange }, { enabled: true });
   const predictionQuery = trpc.wifi.getPrediction.useQuery(undefined, { enabled: true });
 
   useEffect(() => {

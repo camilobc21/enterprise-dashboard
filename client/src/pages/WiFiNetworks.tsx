@@ -13,7 +13,7 @@ import { Wifi, Signal, Lock, Zap, AlertCircle, TrendingDown } from "lucide-react
 export default function WiFiNetworks() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const networksQuery = trpc.wifi.getNetworks.useQuery();
+  const dashboardQuery = trpc.wifi.getDashboard.useQuery(undefined, { enabled: true });
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredNetworks, setFilteredNetworks] = useState<any[]>([]);
 
@@ -25,13 +25,13 @@ export default function WiFiNetworks() {
 
   // Filtrar redes por SSID
   useEffect(() => {
-    if (networksQuery.data) {
-      const filtered = networksQuery.data.filter((net: any) =>
+    if (dashboardQuery.data?.canales) {
+      const filtered = dashboardQuery.data.canales.filter((net: any) =>
         net.ssid?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredNetworks(filtered);
     }
-  }, [networksQuery.data, searchTerm]);
+  }, [dashboardQuery.data, searchTerm]);
 
   const getSignalStrength = (rssi: number) => {
     if (rssi >= -50) return { label: "Excelente", color: "text-green-500", bg: "bg-green-50" };
@@ -47,8 +47,6 @@ export default function WiFiNetworks() {
     }
     return <Badge className="bg-yellow-100 text-yellow-800">Solapado</Badge>;
   };
-
-  const dashboardQuery = trpc.wifi.getDashboard.useQuery();
 
   const getChannelHealth = (saturacion: number, ocupacion: number, interferencia: number) => {
     const score = (saturacion * 0.4 + ocupacion * 0.3 + interferencia * 0.3);
@@ -90,7 +88,7 @@ export default function WiFiNetworks() {
               <CardTitle className="text-sm font-medium">Total de Redes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{networksQuery.data?.length || 0}</div>
+              <div className="text-2xl font-bold">{dashboardQuery.data?.canales?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -100,7 +98,7 @@ export default function WiFiNetworks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {networksQuery.data?.filter((n: any) => n.encriptacion !== "Abierta").length || 0}
+                {dashboardQuery.data?.canales?.filter((n: any) => n.encriptacion !== "Abierta").length || 0}
               </div>
             </CardContent>
           </Card>
@@ -111,10 +109,10 @@ export default function WiFiNetworks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {networksQuery.data && networksQuery.data.length > 0
+                {dashboardQuery.data?.canales && dashboardQuery.data.canales.length > 0
                   ? Math.round(
-                      networksQuery.data.reduce((sum: number, n: any) => sum + n.rssi, 0) /
-                        networksQuery.data.length
+                      dashboardQuery.data.canales.reduce((sum: number, n: any) => sum + n.rssi, 0) /
+                        dashboardQuery.data.canales.length
                     )
                   : 0}{" "}
                 dBm
@@ -143,11 +141,11 @@ export default function WiFiNetworks() {
           <CardHeader>
             <CardTitle>Redes Disponibles</CardTitle>
             <CardDescription>
-              {filteredNetworks.length} de {networksQuery.data?.length || 0} redes
+              {filteredNetworks.length} de {dashboardQuery.data?.canales?.length || 0} redes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {networksQuery.isLoading ? (
+            {dashboardQuery.isLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : filteredNetworks.length > 0 ? (
               <div className="overflow-x-auto">

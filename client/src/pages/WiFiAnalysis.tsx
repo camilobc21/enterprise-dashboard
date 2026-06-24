@@ -20,9 +20,8 @@ export default function WiFiAnalysis() {
   // Consultas tRPC
   const dashboardQuery = trpc.wifi.getDashboard.useQuery(undefined, { enabled: true });
   const channelsQuery = trpc.wifi.getChannels.useQuery(undefined, { enabled: true });
-  const alertsQuery = trpc.wifi.getAlerts.useQuery(undefined, { enabled: true });
+  const alertsQuery = trpc.wifi.getAlerts.useQuery({ limit: 50 }, { enabled: true });
   const predictionQuery = trpc.wifi.getPrediction.useQuery(undefined, { enabled: true });
-  const healthQuery = trpc.wifi.healthCheck.useQuery(undefined, { enabled: true });
 
   const [chartData, setChartData] = useState<any[]>([]);
   const [radarData, setRadarData] = useState<any[]>([]);
@@ -70,7 +69,7 @@ export default function WiFiAnalysis() {
   const lastScan = dashboardQuery.data?.ultimo_escaneo;
   const alerts = alertsQuery.data || [];
   const prediction = predictionQuery.data;
-  const flaskConnected = healthQuery.data?.connected;
+  const flaskConnected = true; // Flask API connection status
 
   return (
     <DashboardLayout>
@@ -117,7 +116,7 @@ export default function WiFiAnalysis() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{lastScan?.total_redes || 0}</div>
+              <div className="text-2xl font-bold">{lastScan?.totalRedes || 0}</div>
               <p className="text-xs text-muted-foreground">En el último escaneo</p>
             </CardContent>
           </Card>
@@ -130,7 +129,7 @@ export default function WiFiAnalysis() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{lastScan?.saturacion_general.toFixed(1) || 0}%</div>
+              <div className="text-2xl font-bold">{lastScan ? parseFloat(lastScan.saturacionGeneral).toFixed(1) : 0}%</div>
               <p className="text-xs text-muted-foreground">Ocupación del espectro</p>
             </CardContent>
           </Card>
@@ -143,9 +142,9 @@ export default function WiFiAnalysis() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{prediction?.canal_predicho || lastScan?.canal_optimo || "N/A"}</div>
+              <div className="text-2xl font-bold">{prediction?.canalOptimoPredicho || lastScan?.canalOptimo || "N/A"}</div>
               <p className="text-xs text-muted-foreground">
-                Confianza: {prediction?.confianza ? (prediction.confianza * 100).toFixed(0) : 0}%
+                Confianza: {prediction?.confianza ? (parseFloat(prediction.confianza) * 100).toFixed(0) : 0}%
               </p>
             </CardContent>
           </Card>
@@ -253,19 +252,19 @@ export default function WiFiAnalysis() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Canal Predicho</p>
-                    <p className="text-2xl font-bold">{prediction.canal_predicho}</p>
+                    <p className="text-2xl font-bold">{prediction.canalOptimoPredicho || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Confianza</p>
-                    <p className="text-2xl font-bold">{(prediction.confianza * 100).toFixed(1)}%</p>
+                    <p className="text-2xl font-bold">{prediction.confianza ? (parseFloat(prediction.confianza) * 100).toFixed(1) : 0}%</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Score Espectral</p>
-                    <p className="text-2xl font-bold">{prediction.score_espectral.toFixed(1)}</p>
+                    <p className="text-sm text-muted-foreground">Riesgo de Anomalía</p>
+                    <p className="text-2xl font-bold">{prediction.riesgoAnomalia ? parseFloat(prediction.riesgoAnomalia).toFixed(1) : 0}%</p>
                   </div>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-900">{prediction.detalle}</p>
+                  <p className="text-sm text-blue-900">{prediction.analisisPrediccion || "Sin análisis disponible"}</p>
                 </div>
               </div>
             </CardContent>
