@@ -4,7 +4,7 @@
  * Maneja todas las llamadas a los endpoints de WiFi
  */
 
-const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:5000';
+const FLASK_API_URL = process.env.FLASK_API_URL || 'https://wolverine-punctual-immorally.ngrok-free.dev';
 
 interface FlaskResponse<T> {
   ok: boolean;
