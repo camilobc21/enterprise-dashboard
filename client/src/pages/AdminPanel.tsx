@@ -18,6 +18,7 @@ export default function AdminPanel() {
   const usersQuery = trpc.users.getAll.useQuery(undefined, { enabled: user?.role === "admin" });
   const auditLogsQuery = trpc.audit.getLogs.useQuery({ limit: 50, offset: 0 }, { enabled: user?.role === "admin" });
   const updateRoleMutation = trpc.users.updateRole.useMutation();
+  const deleteUserMutation = trpc.users.deleteUser.useMutation();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
 
@@ -45,14 +46,22 @@ export default function AdminPanel() {
     }
 
     try {
-      await updateRoleMutation.mutateAsync({
+      const result = await updateRoleMutation.mutateAsync({
         userId: selectedUserId,
         role: selectedRole,
       });
+      
+      if (!result) {
+        toast.error("Error: No se pudo actualizar el rol");
+        return;
+      }
+      
       toast.success("Rol actualizado correctamente");
-      usersQuery.refetch();
+      await usersQuery.refetch();
       setSelectedUserId(null);
+      setSelectedRole("user");
     } catch (error) {
+      console.error("Error updating role:", error);
       toast.error("Error al actualizar el rol");
     }
   };
@@ -114,6 +123,7 @@ export default function AdminPanel() {
                       <TableHead>Email</TableHead>
                       <TableHead>Rol</TableHead>
                       <TableHead>Último acceso</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -128,6 +138,26 @@ export default function AdminPanel() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(u.lastSignedIn).toLocaleDateString("es-ES")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm(`¿Estás seguro de que quieres eliminar a ${u.name || u.email}?`)) {
+                                try {
+                                  await deleteUserMutation.mutateAsync({ userId: u.id });
+                                  toast.success("Usuario eliminado correctamente");
+                                  await usersQuery.refetch();
+                                } catch (error) {
+                                  toast.error("Error al eliminar el usuario");
+                                }
+                              }
+                            }}
+                            disabled={deleteUserMutation.isPending}
+                          >
+                            {deleteUserMutation.isPending ? "Eliminando..." : "Eliminar"}
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

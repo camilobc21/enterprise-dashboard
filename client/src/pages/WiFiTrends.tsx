@@ -92,10 +92,9 @@ export default function WiFiTrends() {
         </div>
 
         <Tabs defaultValue="saturacion" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="saturacion">Saturación</TabsTrigger>
             <TabsTrigger value="ocupacion">Ocupación</TabsTrigger>
-            <TabsTrigger value="perdida">Pérdida</TabsTrigger>
             <TabsTrigger value="canales">Canales</TabsTrigger>
             <TabsTrigger value="predicciones">Predicciones</TabsTrigger>
             <TabsTrigger value="alertas">Alertas</TabsTrigger>
@@ -164,43 +163,6 @@ export default function WiFiTrends() {
                         name="Ocupación Espectral"
                       />
                     </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* TAB: PÉRDIDA */}
-          <TabsContent value="perdida" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Evolución de Pérdida de Paquetes</CardTitle>
-                <CardDescription>Porcentaje de pérdida de paquetes medida por ping</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="w-full h-[400px]" />
-                ) : (
-                  <ResponsiveContainer width="100%" height={400}>
-                    <AreaChart data={historicalData}>
-                      <defs>
-                        <linearGradient id="colorPerdida" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="timestamp" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Area
-                        type="monotone"
-                        dataKey="perdida"
-                        stroke="#f97316"
-                        fillOpacity={1}
-                        fill="url(#colorPerdida)"
-                      />
-                    </AreaChart>
                   </ResponsiveContainer>
                 )}
               </CardContent>

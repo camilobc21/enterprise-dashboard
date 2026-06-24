@@ -175,6 +175,93 @@ export const crudRecords = mysqlTable("crud_records", {
 export type CRUDRecord = typeof crudRecords.$inferSelect;
 export type InsertCRUDRecord = typeof crudRecords.$inferInsert;
 
+/**
+ * WiFi Scans table for storing WiFi analysis data from ESP8266
+ */
+export const wifiScans = mysqlTable("wifi_scans", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  saturacionGeneral: decimal("saturacionGeneral", { precision: 5, scale: 2 }).notNull(),
+  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }).notNull(),
+  perdidaPaquetes: decimal("perdidaPaquetes", { precision: 5, scale: 2 }).notNull(),
+  totalRedes: int("totalRedes").notNull(),
+  tendenciaIA: decimal("tendenciaIA", { precision: 5, scale: 2 }),
+  canalOptimo: int("canalOptimo"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("wifi_scans_userId_idx").on(table.userId),
+  timestampIdx: index("wifi_scans_timestamp_idx").on(table.timestamp),
+}));
+
+export type WiFiScan = typeof wifiScans.$inferSelect;
+export type InsertWiFiScan = typeof wifiScans.$inferInsert;
+
+/**
+ * WiFi Channels table for storing per-channel analysis
+ */
+export const wifiChannels = mysqlTable("wifi_channels", {
+  id: int("id").autoincrement().primaryKey(),
+  scanId: int("scanId").notNull().references(() => wifiScans.id),
+  canal: int("canal").notNull(),
+  saturacion: decimal("saturacion", { precision: 5, scale: 2 }).notNull(),
+  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }).notNull(),
+  interferencia: decimal("interferencia", { precision: 5, scale: 2 }),
+  perdidaPaquetes: decimal("perdidaPaquetes", { precision: 5, scale: 2 }),
+  riesgoAnomalia: decimal("riesgoAnomalia", { precision: 5, scale: 2 }),
+  rssi: int("rssi"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  scanIdIdx: index("wifi_channels_scanId_idx").on(table.scanId),
+  canalIdx: index("wifi_channels_canal_idx").on(table.canal),
+}));
+
+export type WiFiChannel = typeof wifiChannels.$inferSelect;
+export type InsertWiFiChannel = typeof wifiChannels.$inferInsert;
+
+/**
+ * WiFi Alerts table for storing detected anomalies
+ */
+export const wifiAlerts = mysqlTable("wifi_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id),
+  scanId: int("scanId").references(() => wifiScans.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  tipo: mysqlEnum("tipo", ["saturacion", "perdida", "ocupacion", "interferencia", "anomalia"]).notNull(),
+  descripcion: text("descripcion").notNull(),
+  severidad: mysqlEnum("severidad", ["info", "warning", "critical"]).default("warning").notNull(),
+  resuelta: boolean("resuelta").default(false).notNull(),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("wifi_alerts_userId_idx").on(table.userId),
+  timestampIdx: index("wifi_alerts_timestamp_idx").on(table.timestamp),
+}));
+
+export type WiFiAlert = typeof wifiAlerts.$inferSelect;
+export type InsertWiFiAlert = typeof wifiAlerts.$inferInsert;
+
+/**
+ * WiFi Predictions table for storing AI predictions
+ */
+export const wifiPredictions = mysqlTable("wifi_predictions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  saturacionPredicha: decimal("saturacionPredicha", { precision: 5, scale: 2 }).notNull(),
+  riesgoAnomalia: decimal("riesgoAnomalia", { precision: 5, scale: 2 }).notNull(),
+  canalOptimoPredicho: int("canalOptimoPredicho"),
+  analisisPrediccion: text("analisisPrediccion"),
+  confianza: decimal("confianza", { precision: 5, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("wifi_predictions_userId_idx").on(table.userId),
+  timestampIdx: index("wifi_predictions_timestamp_idx").on(table.timestamp),
+}));
+
+export type WiFiPrediction = typeof wifiPredictions.$inferSelect;
+export type InsertWiFiPrediction = typeof wifiPredictions.$inferInsert;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   dashboardMetrics: many(dashboardMetrics),

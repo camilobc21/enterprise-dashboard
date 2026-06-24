@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -57,6 +57,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     } else if (user.openId === ENV.ownerOpenId) {
       values.role = 'admin';
       updateSet.role = 'admin';
+    } else {
+      // Default new users to 'user' role
+      values.role = 'user';
+      updateSet.role = 'user';
     }
 
     if (!values.lastSignedIn) {
@@ -103,9 +107,32 @@ export async function getUserById(id: number) {
 
 export async function updateUserRole(userId: number, role: "user" | "admin") {
   const db = await getDb();
+  if (!db) return null;
+  try {
+    console.log(`[Database] Updating user ${userId} role to ${role}`);
+    const updateResult = await db.update(users).set({ role }).where(eq(users.id, userId));
+    console.log(`[Database] Update result:`, updateResult);
+    const updatedUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    console.log(`[Database] Updated user:`, updatedUser);
+    return updatedUser.length > 0 ? updatedUser[0] : null;
+  } catch (error) {
+    console.error("[Database] Error updating user role:", error);
+    throw error;
+  }
+}
+
+export async function deleteUser(userId: number) {
+  const db = await getDb();
   if (!db) return false;
-  await db.update(users).set({ role }).where(eq(users.id, userId));
-  return true;
+  try {
+    console.log(`[Database] Deleting user ${userId}`);
+    await db.delete(users).where(eq(users.id, userId));
+    console.log(`[Database] User ${userId} deleted successfully`);
+    return true;
+  } catch (error) {
+    console.error("[Database] Error deleting user:", error);
+    throw error;
+  }
 }
 
 // Dashboard Metrics

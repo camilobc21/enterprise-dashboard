@@ -20,6 +20,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users, Wifi, BarChart3, Bell, MessageSquare, FileText, Settings, TrendingUp } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -53,10 +55,21 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  const currentUserQuery = trpc.users.getCurrentUser.useQuery(undefined, {
+    refetchInterval: 5000, // Refetch every 5 seconds to check for role changes
+  });
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
+
+  // If user role changed, update the UI
+  useEffect(() => {
+    if (currentUserQuery.data && user && currentUserQuery.data.role !== user.role) {
+      // Role changed, reload the page to update the menu
+      window.location.reload();
+    }
+  }, [currentUserQuery.data?.role, user?.role]);
 
   if (loading) {
     return <DashboardLayoutSkeleton />
@@ -187,6 +200,14 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
+                // Hide Dashboard from non-admin users
+                if (item.path === "/dashboard" && user?.role !== "admin") {
+                  return null;
+                }
+                // Hide Admin Panel from non-admin users
+                if (item.path === "/admin" && user?.role !== "admin") {
+                  return null;
+                }
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>
