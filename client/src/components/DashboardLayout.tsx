@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -133,6 +132,9 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const currentUserQuery = trpc.users.getCurrentUser.useQuery(undefined, {
+    refetchInterval: 5000, // Refetch every 5 seconds to check for role changes
+  });
 
   useEffect(() => {
     if (isCollapsed) {
@@ -200,12 +202,14 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
+                // Use user?.role from useAuth
+                const userRole = user?.role;
                 // Hide Dashboard from non-admin users
-                if (item.path === "/dashboard" && user?.role !== "admin") {
+                if (item.path === "/dashboard" && userRole !== "admin") {
                   return null;
                 }
                 // Hide Admin Panel from non-admin users
-                if (item.path === "/admin" && user?.role !== "admin") {
+                if (item.path === "/admin" && userRole !== "admin") {
                   return null;
                 }
                 const isActive = location === item.path;

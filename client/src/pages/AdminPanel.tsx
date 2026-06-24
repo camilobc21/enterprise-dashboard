@@ -16,7 +16,7 @@ export default function AdminPanel() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const usersQuery = trpc.users.getAll.useQuery(undefined, { enabled: user?.role === "admin" });
-  const auditLogsQuery = trpc.audit.getLogs.useQuery({ limit: 50, offset: 0 }, { enabled: user?.role === "admin" });
+  const auditLogsQuery = trpc.audit.getLogs.useQuery({ limit: 50, offset: 0 }, { enabled: false }); // Disabled for now
   const updateRoleMutation = trpc.users.updateRole.useMutation();
   const deleteUserMutation = trpc.users.deleteUser.useMutation();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
