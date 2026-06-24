@@ -1,8 +1,8 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useSocketContext } from "@/contexts/SocketContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,7 @@ export default function WiFiAnalysis() {
 
   const [chartData, setChartData] = useState<any[]>([]);
   const [radarData, setRadarData] = useState<any[]>([]);
+  const [flaskConnected, setFlaskConnected] = useState(true);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -55,7 +56,17 @@ export default function WiFiAnalysis() {
     }
   }, [channelsQuery.data]);
 
-  if (loading) {
+  // Verificar conexión a Flask
+  useEffect(() => {
+    if (dashboardQuery.isError) {
+      setFlaskConnected(false);
+      toast.error("No se pudo conectar a la API Flask");
+    } else if (dashboardQuery.data) {
+      setFlaskConnected(true);
+    }
+  }, [dashboardQuery.isError, dashboardQuery.data]);
+
+  if (loading || dashboardQuery.isLoading) {
     return (
       <DashboardLayout>
         <div className="space-y-4">
@@ -69,7 +80,19 @@ export default function WiFiAnalysis() {
   const lastScan = dashboardQuery.data?.ultimo_escaneo;
   const alerts = alertsQuery.data || [];
   const prediction = predictionQuery.data;
-  const flaskConnected = true; // Flask API connection status
+
+  if (dashboardQuery.data?.sin_datos) {
+    return (
+      <DashboardLayout>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No hay datos disponibles. Espera a que el ESP8266 envíe el primer escaneo.
+          </AlertDescription>
+        </Alert>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -100,117 +123,104 @@ export default function WiFiAnalysis() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No se puede conectar con la API Flask. Asegúrate de que el servidor está corriendo en{" "}
-              <code className="bg-slate-100 px-2 py-1 rounded">http://localhost:5000</code>
+              No se puede conectar a la API Flask. Verifica que el servidor esté ejecutándose.
             </AlertDescription>
           </Alert>
         )}
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Wifi className="h-4 w-4" />
-                Redes Detectadas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{lastScan?.totalRedes || 0}</div>
-              <p className="text-xs text-muted-foreground">En el último escaneo</p>
-            </CardContent>
-          </Card>
+        {/* Métricas Principales */}
+        {lastScan && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Redes Detectadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{lastScan.total_redes}</div>
+                <p className="text-xs text-muted-foreground">Redes WiFi activas</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Signal className="h-4 w-4" />
-                Saturación General
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{lastScan ? parseFloat(lastScan.saturacionGeneral).toFixed(1) : 0}%</div>
-              <p className="text-xs text-muted-foreground">Ocupación del espectro</p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Saturación General</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{lastScan.saturacion_general}%</div>
+                <p className="text-xs text-muted-foreground">Ocupación del espectro</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Canal Óptimo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{prediction?.canalOptimoPredicho || lastScan?.canalOptimo || "N/A"}</div>
-              <p className="text-xs text-muted-foreground">
-                Confianza: {prediction?.confianza ? (parseFloat(prediction.confianza) * 100).toFixed(0) : 0}%
-              </p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Ocupación Espectral</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{lastScan.ocupacion_espectral}%</div>
+                <p className="text-xs text-muted-foreground">Interferencia detectada</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Alertas Activas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{alerts.length}</div>
-              <p className="text-xs text-muted-foreground">Anomalías detectadas</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Pérdida de Paquetes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{lastScan.perdida_paquetes}%</div>
+                <p className="text-xs text-muted-foreground">Calidad de conexión</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Saturación por Canal */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de Saturación por Canal */}
           <Card>
             <CardHeader>
               <CardTitle>Saturación por Canal</CardTitle>
-              <CardDescription>Ocupación de cada canal WiFi</CardDescription>
+              <CardDescription>Distribución de redes por canal WiFi</CardDescription>
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="canal" angle={-45} textAnchor="end" height={80} />
+                    <XAxis dataKey="canal" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="saturacion" fill="#ef4444" name="Saturación %" />
+                    <Legend />
+                    <Bar dataKey="saturacion" fill="#3b82f6" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   Sin datos disponibles
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Ocupación Espectral */}
+          {/* Gráfico de Interferencia */}
           <Card>
             <CardHeader>
-              <CardTitle>Ocupación Espectral</CardTitle>
-              <CardDescription>Interferencia considerando canales adyacentes</CardDescription>
+              <CardTitle>Interferencia Adyacente</CardTitle>
+              <CardDescription>Nivel de interferencia por canal</CardDescription>
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="canal" angle={-45} textAnchor="end" height={80} />
+                    <XAxis dataKey="canal" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="ocupacion" stroke="#3b82f6" name="Ocupación %" />
-                    <Line type="monotone" dataKey="interferencia" stroke="#f59e0b" name="Interferencia %" />
+                    <Line type="monotone" dataKey="interferencia" stroke="#ef4444" />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   Sin datos disponibles
                 </div>
               )}
@@ -231,97 +241,66 @@ export default function WiFiAnalysis() {
                   <PolarGrid />
                   <PolarAngleAxis dataKey="canal" />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Saturación" dataKey="saturacion" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} />
-                  <Radar name="Ocupación" dataKey="ocupacion" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                  <Tooltip />
+                  <Radar name="Saturación" dataKey="saturacion" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                  <Radar name="Ocupación" dataKey="ocupacion" stroke="#ef4444" fill="#ef4444" fillOpacity={0.5} />
                   <Legend />
+                  <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         )}
 
-        {/* Predicción IA */}
+        {/* Predicción de IA */}
         {prediction && (
-          <Card>
+          <Card className="border-blue-200 bg-blue-50">
             <CardHeader>
-              <CardTitle>Predicción IA - Canal Óptimo</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Predicción de IA
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Canal Predicho</p>
-                    <p className="text-2xl font-bold">{prediction.canalOptimoPredicho || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Confianza</p>
-                    <p className="text-2xl font-bold">{prediction.confianza ? (parseFloat(prediction.confianza) * 100).toFixed(1) : 0}%</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Riesgo de Anomalía</p>
-                    <p className="text-2xl font-bold">{prediction.riesgoAnomalia ? parseFloat(prediction.riesgoAnomalia).toFixed(1) : 0}%</p>
-                  </div>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Canal Óptimo Predicho</p>
+                  <p className="text-2xl font-bold">{prediction.canal_predicho}</p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-900">{prediction.analisisPrediccion || "Sin análisis disponible"}</p>
+                <div>
+                  <p className="text-sm text-muted-foreground">Confianza</p>
+                  <p className="text-2xl font-bold">{(prediction.confianza * 100).toFixed(0)}%</p>
                 </div>
               </div>
+              <p className="text-sm">{prediction.detalle}</p>
             </CardContent>
           </Card>
         )}
 
-        {/* Alertas */}
+        {/* Alertas Recientes */}
         {alerts.length > 0 && (
-          <Card>
+          <Card className="border-red-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                Alertas Detectadas
+                Alertas Recientes
               </CardTitle>
-              <CardDescription>{alerts.length} anomalías activas</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {alerts.slice(0, 10).map((alert: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg border ${
-                      alert.severidad === "ALTA"
-                        ? "bg-red-50 border-red-200"
-                        : "bg-yellow-50 border-yellow-200"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">
-                          Canal {alert.canal} - {alert.tipo}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">{alert.descripcion}</p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={
-                          alert.severidad === "ALTA"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }
-                      >
-                        {alert.severidad}
-                      </Badge>
+                {alerts.slice(0, 5).map((alert: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                    <Badge variant={alert.severidad === "ALTA" ? "destructive" : "secondary"}>
+                      {alert.severidad}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{alert.tipo}</p>
+                      <p className="text-xs text-muted-foreground">{alert.descripcion}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Estado de carga */}
-        {(dashboardQuery.isLoading || channelsQuery.isLoading) && (
-          <div className="flex justify-center py-8">
-            <div className="text-muted-foreground">Cargando datos WiFi...</div>
-          </div>
         )}
       </div>
     </DashboardLayout>

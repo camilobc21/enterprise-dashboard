@@ -25,8 +25,8 @@ export default function WiFiNetworks() {
 
   // Filtrar redes por SSID
   useEffect(() => {
-    if (dashboardQuery.data?.canales) {
-      const filtered = dashboardQuery.data.canales.filter((net: any) =>
+    if (dashboardQuery.data?.redes) {
+      const filtered = dashboardQuery.data.redes.filter((net: any) =>
         net.ssid?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredNetworks(filtered);
@@ -88,7 +88,7 @@ export default function WiFiNetworks() {
               <CardTitle className="text-sm font-medium">Total de Redes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardQuery.data?.canales?.length || 0}</div>
+              <div className="text-2xl font-bold">{dashboardQuery.data?.redes?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -98,7 +98,7 @@ export default function WiFiNetworks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {dashboardQuery.data?.canales?.filter((n: any) => n.encriptacion !== "Abierta").length || 0}
+                {dashboardQuery.data?.redes?.filter((n: any) => n.encriptacion !== "OPEN").length || 0}
               </div>
             </CardContent>
           </Card>
@@ -109,10 +109,10 @@ export default function WiFiNetworks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {dashboardQuery.data?.canales && dashboardQuery.data.canales.length > 0
+                {dashboardQuery.data?.redes && dashboardQuery.data.redes.length > 0
                   ? Math.round(
-                      dashboardQuery.data.canales.reduce((sum: number, n: any) => sum + n.rssi, 0) /
-                        dashboardQuery.data.canales.length
+                      dashboardQuery.data.redes.reduce((sum: number, n: any) => sum + n.rssi, 0) /
+                        dashboardQuery.data.redes.length
                     )
                   : 0}{" "}
                 dBm
@@ -141,7 +141,7 @@ export default function WiFiNetworks() {
           <CardHeader>
             <CardTitle>Redes Disponibles</CardTitle>
             <CardDescription>
-              {filteredNetworks.length} de {dashboardQuery.data?.canales?.length || 0} redes
+              {filteredNetworks.length} de {dashboardQuery.data?.redes?.length || 0} redes
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -166,8 +166,8 @@ export default function WiFiNetworks() {
                       return (
                         <TableRow key={idx}>
                           <TableCell className="font-medium">{network.ssid || "Oculta"}</TableCell>
-                          <TableCell>{network.canal}</TableCell>
-                          <TableCell>{network.rssi}</TableCell>
+                          <TableCell><Badge variant="outline">{network.canal}</Badge></TableCell>
+                          <TableCell><span className={signal.color}>{network.rssi} dBm</span></TableCell>
                           <TableCell>
                             <div className={`flex items-center gap-2 px-2 py-1 rounded ${signal.bg}`}>
                               <Signal className={`h-4 w-4 ${signal.color}`} />
@@ -176,7 +176,7 @@ export default function WiFiNetworks() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
-                              {network.encriptacion !== "Abierta" && (
+                              {network.encriptacion !== "OPEN" && (
                                 <Lock className="h-4 w-4 text-green-500" />
                               )}
                               <span className="text-sm">{network.encriptacion || "N/A"}</span>
@@ -208,7 +208,7 @@ export default function WiFiNetworks() {
               <Skeleton className="h-40 w-full" />
             ) : dashboardQuery.data?.canales && dashboardQuery.data.canales.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {dashboardQuery.data.canales.map((canalData: any) => {
+                {dashboardQuery.data?.canales?.map((canalData: any) => {
                   const isNonOverlapping = [1, 6, 11].includes(canalData.canal);
                   const health = getChannelHealth(
                     canalData.saturacion || 0,
@@ -232,8 +232,8 @@ export default function WiFiNetworks() {
                       <p className={`text-xs font-medium ${health.textColor}`}>{health.label}</p>
                       <p className="text-xs text-muted-foreground mt-1">{redes} redes</p>
                       <div className="mt-2 space-y-1 text-xs">
-                        <p className="text-muted-foreground">Sat: {Math.round(canalData.saturacion || 0)}%</p>
-                        <p className="text-muted-foreground">Ocup: {Math.round(canalData.ocupacion_espectral || 0)}%</p>
+                        <p className="text-muted-foreground">Sat: {Math.round((canalData.saturacion || 0) * 100)}%</p>
+                        <p className="text-muted-foreground">Ocup: {Math.round((canalData.ocupacion_espectral || 0) * 100)}%</p>
                       </div>
                       {isNonOverlapping && (
                         <Badge className="mt-2 bg-green-600 text-white text-xs">
