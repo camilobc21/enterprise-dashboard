@@ -24,7 +24,10 @@ export default function AIChat() {
   const createConversation = trpc.ai.createConversation.useMutation();
   const sendMessage = trpc.ai.sendMessage.useMutation();
   const generateReport = trpc.export.generateWiFiReportPDF.useMutation();
-  const getDashboardQuery = trpc.wifi.getDashboard.useQuery();
+  const getDashboardQuery = trpc.wifi.getDashboard.useQuery(undefined, {
+    refetchInterval: 30000, // Actualizar cada 30 segundos (igual que ESP8266)
+    enabled: true,
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -47,6 +50,37 @@ export default function AIChat() {
     }
   }, [getDashboardQuery.data]);
 
+  // Crear conversación automáticamente al cargar
+  useEffect(() => {
+    if (!loading && isAuthenticated && messages.length === 0) {
+      createConversation.mutate(
+        {
+          title: "Análisis WiFi en Tiempo Real",
+          systemPrompt: `Eres un experto en análisis de redes WiFi 2.4GHz con especialidad en:
+- Optimización de canales (1-13)
+- Análisis de interferencia espectral
+- Detección de anomalías
+- Predicción de problemas de conectividad
+- Recomendaciones prácticas de configuración
+
+Tienes acceso a datos en TIEMPO REAL del sistema WiFi.
+Analiza datos técnicos reales y proporciona recomendaciones específicas, medibles y accionables.
+Siempre fundamenta tus análisis en los datos proporcionados.
+Sé conciso pero técnicamente preciso.
+Siempre menciona las métricas específicas del sistema actual.`,
+        },
+        {
+          onSuccess: (data: any) => {
+            // Guardar ID de conversación para usar en sendMessage
+            if (data && typeof data === 'object' && 'id' in data) {
+              localStorage.setItem("wifiChatConversationId", (data as any).id.toString());
+            }
+          },
+        }
+      );
+    }
+  }, [loading, isAuthenticated]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -58,22 +92,14 @@ export default function AIChat() {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
 
     try {
-      // Crear contexto con datos WiFi
-      const context = wifiData
-        ? `Datos actuales de WiFi:
-- Saturación General: ${wifiData.saturacion_general}%
-- Ocupación Espectral: ${wifiData.ocupacion_espectral}%
-- Pérdida de Paquetes: ${wifiData.perdida_paquetes}%
-- Total de Redes: ${wifiData.total_redes}
-- Canales Detectados: ${wifiData.canales?.length || 0}
+      // Obtener ID de conversación del localStorage o usar 1 como default
+      const conversationId = parseInt(localStorage.getItem("wifiChatConversationId") || "1");
 
-Pregunta del usuario: ${userMessage}`
-        : userMessage;
-
+      // Enviar mensaje con contexto WiFi SIEMPRE habilitado
       const response = await sendMessage.mutateAsync({
-        conversationId: 1,
-        message: context,
-        includeWiFiContext: true,
+        conversationId,
+        message: userMessage,
+        includeWiFiContext: true, // SIEMPRE incluir contexto en tiempo real
       });
 
       // Agregar respuesta de IA
@@ -142,10 +168,11 @@ Pregunta del usuario: ${userMessage}`
     if (!wifiData) return;
 
     try {
+      const conversationId = parseInt(localStorage.getItem("wifiChatConversationId") || "1");
       const response = await sendMessage.mutateAsync({
-        conversationId: 1,
-        message: `Basándote en estos datos de WiFi: Saturación ${wifiData.saturacion_general}%, Ocupación ${wifiData.ocupacion_espectral}%, Pérdida ${wifiData.perdida_paquetes}%. Dame 5-7 recomendaciones específicas y medibles.`,
-        includeWiFiContext: true,
+        conversationId,
+        message: `Dame 5-7 recomendaciones específicas y medibles basadas en los datos actuales de WiFi.`,
+        includeWiFiContext: true, // Contexto en tiempo real automático
       });
 
       // Parsear recomendaciones de la respuesta
@@ -199,30 +226,46 @@ Pregunta del usuario: ${userMessage}`
                 <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-4 bg-muted/50">
                   {messages.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
-                      <p>Inicia una conversación sobre tu red WiFi</p>
+                      <div className="space-y-2">
+                        <p className="font-medium">Asistente WiFi IA - Datos en Tiempo Real</p>
+                        <p className="text-xs">Haz preguntas sobre tu red. La IA usa datos actuales automáticamente.</p>
+                        {wifiData && (
+                          <div className="text-xs mt-4 p-2 bg-blue-50 rounded">
+                            <p>📊 Datos actuales:</p>
+                            <p>Saturación: {wifiData.saturacion_general}% | Ocupación: {wifiData.ocupacion_espectral}% | Redes: {wifiData.total_redes}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     messages.map((msg, idx) => (
                       <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-xs p-3 rounded-lg ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-white border"}`}>
-                          <p className="text-sm">{msg.content}</p>
+                          <Streamdown>{msg.content}</Streamdown>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
 
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Escribe tu pregunta..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                    disabled={isLoading}
-                  />
-                  <Button onClick={handleSendMessage} disabled={isLoading} size="icon">
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-2">
+                  {getDashboardQuery.isLoading && (
+                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                      🔄 Actualizando datos en tiempo real...
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Pregunta sobre tu red WiFi (datos en tiempo real)..."
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                      disabled={isLoading}
+                    />
+                    <Button onClick={handleSendMessage} disabled={isLoading} size="icon">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -233,26 +276,36 @@ Pregunta del usuario: ${userMessage}`
             <Card>
               <CardHeader>
                 <CardTitle>Análisis Actual</CardTitle>
-                <CardDescription>Estado en tiempo real de tu red</CardDescription>
+                <CardDescription>Estado en tiempo real de tu red (Actualiza cada 30s)</CardDescription>
               </CardHeader>
               <CardContent>
                 {wifiData ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Saturación General</p>
-                      <p className="text-2xl font-bold">{wifiData.saturacion_general}%</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent">
+                        <p className="text-sm text-muted-foreground">Saturación General</p>
+                        <p className="text-2xl font-bold text-blue-600">{wifiData.saturacion_general}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">{wifiData.saturacion_general > 70 ? '⚠️ Crítico' : wifiData.saturacion_general > 50 ? '⚡ Alto' : '✅ Normal'}</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-gradient-to-br from-green-50 to-transparent">
+                        <p className="text-sm text-muted-foreground">Ocupación Espectral</p>
+                        <p className="text-2xl font-bold text-green-600">{wifiData.ocupacion_espectral}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">Ancho de banda usado</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-gradient-to-br from-red-50 to-transparent">
+                        <p className="text-sm text-muted-foreground">Pérdida de Paquetes</p>
+                        <p className="text-2xl font-bold text-red-600">{wifiData.perdida_paquetes}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">{wifiData.perdida_paquetes > 5 ? '⚠️ Problemas' : '✅ Normal'}</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-transparent">
+                        <p className="text-sm text-muted-foreground">Total de Redes</p>
+                        <p className="text-2xl font-bold text-purple-600">{wifiData.total_redes}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Detectadas</p>
+                      </div>
                     </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Ocupación Espectral</p>
-                      <p className="text-2xl font-bold">{wifiData.ocupacion_espectral}%</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Pérdida de Paquetes</p>
-                      <p className="text-2xl font-bold">{wifiData.perdida_paquetes}%</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Total de Redes</p>
-                      <p className="text-2xl font-bold">{wifiData.total_redes}</p>
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                      <p className="font-medium">💡 Tip:</p>
+                      <p>Pregunta al chat: "¿Cuál es el mejor canal para usar?" o "¿Qué problemas ves en mi red?"</p>
                     </div>
                   </div>
                 ) : (
