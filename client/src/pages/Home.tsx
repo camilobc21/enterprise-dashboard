@@ -5,7 +5,6 @@ import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { BarChart3, Lock, Zap, Users, FileText, MessageSquare, TrendingUp, ArrowRight } from "lucide-react";
-import { UserSelector } from "@/components/UserSelector";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -35,13 +34,6 @@ export default function Home() {
           </Button>
         </div>
       </nav>
-
-      {/* Development User Selector */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="flex justify-center">
-          <UserSelector />
-        </div>
-      </section>
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
