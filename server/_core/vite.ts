@@ -5,8 +5,14 @@ import { nanoid } from "nanoid";
 import path from "path";
 
 export async function setupVite(app: Express, server: Server) {
+  // Only load vite and its config in development mode
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error("setupVite should only be called in development mode");
+  }
+  
   const { createServer: createViteServer } = await import("vite");
-  const viteConfig = (await import("../../vite.config")).default;
+  const { loadViteConfig } = await import("./vite-config-dev");
+  const viteConfig = await loadViteConfig();
   
   const serverOptions = {
     middlewareMode: true,
