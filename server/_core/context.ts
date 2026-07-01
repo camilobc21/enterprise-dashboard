@@ -16,7 +16,7 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // OAuth is required - no mock user fallback
+    // Authentication is optional for public procedures.
     user = null;
   }
 

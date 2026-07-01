@@ -38,9 +38,6 @@ export function useAuth(options?: UseAuthOptions) {
     } finally {
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
-      // Clear localStorage and redirect to home
-      localStorage.removeItem("manus-runtime-user-info");
-      window.location.href = "/";
     }
   }, [logoutMutation, utils]);
 

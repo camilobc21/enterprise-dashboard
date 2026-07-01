@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -35,20 +36,11 @@ async function startServer() {
   // Setup Socket.io
   const io = setupSocketIO(server);
   app.locals.io = io;
-  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  
-  // Make io accessible in tRPC context
-  app.use((req, res, next) => {
-    (req as any).io = io;
-    next();
-  });
-  
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  
   // tRPC API
   app.use(
     "/api/trpc",
@@ -57,29 +49,28 @@ async function startServer() {
       createContext,
     })
   );
-  
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
-
-  // In production, use fixed port 3000 (Manus platform expects this)
-  // In development, allow dynamic port selection
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  let port = preferredPort;
   
-  if (process.env.NODE_ENV === "development") {
-    port = await findAvailablePort(preferredPort);
-    if (port !== preferredPort) {
-      console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-    }
+  // Hacer io accesible en contexto de tRPC
+  app.use((req, res, next) => {
+    (req as any).io = io;
+    next();
+  });
+
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  const port = await findAvailablePort(preferredPort);
+
+  if (port !== preferredPort) {
+    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  // Bind to 0.0.0.0 to accept external connections
-  server.listen(port, "0.0.0.0", () => {
-    console.log(`[${process.env.NODE_ENV || "production"}] Server running on http://0.0.0.0:${port}/`);
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}/`);
   });
 }
 
