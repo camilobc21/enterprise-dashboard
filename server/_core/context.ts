@@ -16,24 +16,8 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // In development mode, provide a mock admin user for testing
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[Auth] Using mock admin user in development mode");
-      user = {
-        id: 1,
-        openId: "dev-user-001",
-        name: "Development User",
-        email: "dev@example.com",
-        loginMethod: "development",
-        role: "admin",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastSignedIn: new Date(),
-      } as User;
-    } else {
-      // Authentication is optional for public procedures in production.
-      user = null;
-    }
+    // OAuth is required - user will be null if not authenticated
+    user = null;
   }
 
   return {
