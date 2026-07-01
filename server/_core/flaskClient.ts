@@ -21,7 +21,6 @@ export async function flaskGet<T = any>(endpoint: string): Promise<T | null> {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '69420',
       },
     });
 
@@ -47,7 +46,6 @@ export async function flaskPost<T = any>(endpoint: string, payload: any): Promis
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '69420',
       },
       body: JSON.stringify(payload),
     });
