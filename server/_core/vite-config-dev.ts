@@ -6,7 +6,10 @@ export async function loadViteConfig() {
     throw new Error("loadViteConfig should only be called in development mode");
   }
   
-  // Dynamic import to ensure vite.config is not bundled
-  const config = await import("../../vite.config");
+  // Use require.resolve to avoid bundling vite.config
+  // This ensures vite.config is only loaded at runtime in dev mode
+  const viteConfigPath = require.resolve("../../vite.config.ts");
+  delete require.cache[viteConfigPath];
+  const config = require(viteConfigPath);
   return config.default;
 }
