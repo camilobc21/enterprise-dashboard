@@ -85,7 +85,7 @@ export const notifications = mysqlTable("notifications", {
   isRead: boolean("isRead").default(false).notNull(),
   metadata: json("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  readAt: timestamp("readAt"),
 }, (table) => ({
   userIdIdx: index("notifications_userId_idx").on(table.userId),
   isReadIdx: index("notifications_isRead_idx").on(table.isRead),
