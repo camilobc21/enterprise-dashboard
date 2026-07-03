@@ -29,14 +29,12 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Wifi, label: "WiFi Analysis", path: "/wifi-analysis" },
   { icon: BarChart3, label: "WiFi Networks", path: "/wifi-networks" },
   { icon: TrendingUp, label: "WiFi Trends", path: "/wifi-trends" },
   { icon: Bell, label: "Notifications", path: "/notifications" },
   { icon: MessageSquare, label: "AI Chat", path: "/ai" },
   { icon: FileText, label: "Documents", path: "/documents" },
-  { icon: Settings, label: "Admin Panel", path: "/admin" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

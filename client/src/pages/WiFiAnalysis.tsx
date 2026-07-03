@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
-import { AlertCircle, Wifi, Signal, TrendingUp, AlertTriangle } from "lucide-react";
+import { AlertCircle, Wifi, Signal, TrendingUp, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export default function WiFiAnalysis() {
@@ -84,12 +84,128 @@ export default function WiFiAnalysis() {
   if (dashboardQuery.data?.sin_datos) {
     return (
       <DashboardLayout>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No hay datos disponibles. Espera a que el ESP8266 envíe el primer escaneo.
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                <Wifi className="h-8 w-8" />
+                Análisis WiFi IA Pro
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Monitoreo de canales, interferencia espectral y predicciones de IA
+              </p>
+            </div>
+          </div>
+
+          {/* Onboarding Message */}
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <Wifi className="h-5 w-5" />
+                Bienvenido a WiFi Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  WiFi Analysis es una plataforma de monitoreo avanzado que utiliza inteligencia artificial para analizar el espectro WiFi, detectar anomalías y predecir los mejores canales para tu red.
+                </p>
+
+                <div className="bg-white rounded-lg p-4 space-y-3 border border-blue-100">
+                  <h3 className="font-semibold text-sm text-gray-900">Características principales:</h3>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 font-bold mt-0.5">•</span>
+                      <span><strong>Análisis Espectral:</strong> Monitoreo en tiempo real de saturación y ocupación del espectro WiFi</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 font-bold mt-0.5">•</span>
+                      <span><strong>Detección de Interferencias:</strong> Identifica interferencias adyacentes y anomalías en los canales</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 font-bold mt-0.5">•</span>
+                      <span><strong>Predicción IA:</strong> Recomendaciones inteligentes del canal óptimo basadas en patrones históricos</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 font-bold mt-0.5">•</span>
+                      <span><strong>Alertas Automáticas:</strong> Notificaciones de anomalías y eventos críticos</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 space-y-3 border border-amber-100">
+                <h3 className="font-semibold text-sm text-gray-900">Configurar tu ESP32/ESP8266:</h3>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold min-w-fit">1.</span>
+                    <span>Carga el firmware WiFi Analysis en tu ESP32 o ESP8266</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold min-w-fit">2.</span>
+                    <span>Configura la URL del backend: <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono break-all">{window.location.origin}/api/trpc/wifi.submitData</code></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold min-w-fit">3.</span>
+                    <span>Conecta el dispositivo a la red WiFi</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold min-w-fit">4.</span>
+                    <span>Los datos aparecerán aquí automáticamente en tiempo real</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <p className="text-sm text-green-900">
+                  <strong>💡 Tip:</strong> Una vez que el ESP32 envíe el primer escaneo, verás gráficos interactivos, análisis de canales, predicciones de IA y alertas de anomalías.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Status Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Estado de Conexión</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Backend API</span>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <Badge className="bg-green-500">Conectado</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">ESP32/ESP8266</span>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-yellow-500" />
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">Esperando conexión...</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">WebSocket en Vivo</span>
+                  <div className="flex items-center gap-2">
+                    {isConnected ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                        <Badge className="bg-blue-500">Conectado</Badge>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 text-gray-400" />
+                        <Badge variant="outline" className="bg-gray-50 text-gray-800 border-gray-200">Desconectado</Badge>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </DashboardLayout>
     );
   }

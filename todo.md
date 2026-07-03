@@ -85,3 +85,4 @@ Sistema completo de integración con API Flask:
 - [x] Recomendaciones de optimización
 - [x] Health check de conexión Flask
 - [x] Menú lateral actualizado con enlaces WiFi
+- [x] Mejorar mensaje de placeholder en WiFi Analysis con instrucciones de conexión ESP32
