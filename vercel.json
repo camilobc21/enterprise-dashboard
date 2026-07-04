@@ -2,24 +2,7 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "framework": "express",
-  "nodeVersion": "22.x",
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/_core/index.ts": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/dist/index.js"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/dist/public/index.html"
-    }
-  ]
+  }
 }
