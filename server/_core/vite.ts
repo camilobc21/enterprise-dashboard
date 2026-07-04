@@ -66,20 +66,24 @@ export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
   
   if (!fs.existsSync(distPath)) {
-    console.warn(
-      `Could not find the build directory: ${distPath}, serving from root`
+    console.error(
+      `ERROR: Could not find the build directory: ${distPath}`
     );
+    app.use(express.static("."));
+  } else {
+    console.log(`[Server] Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
   }
 
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Handle SPA routing - serve index.html for all routes that don't match static files
+  app.get("*", (_req, res) => {
     const indexPath = path.resolve(distPath, "index.html");
     if (fs.existsSync(indexPath)) {
+      console.log(`[Server] Serving index.html for route: ${_req.path}`);
       res.sendFile(indexPath);
     } else {
-      res.status(404).send("Not found");
+      console.error(`[Server] index.html not found at ${indexPath}`);
+      res.status(404).send("Not found - index.html missing");
     }
   });
 }
