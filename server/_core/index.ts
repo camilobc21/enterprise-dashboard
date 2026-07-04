@@ -69,11 +69,8 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  // Listen on 0.0.0.0 to accept external connections (required for Docker)
-  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
-  server.listen(port, host, () => {
-    console.log(`[Server] Running on http://${host}:${port}/`);
-    console.log(`[Server] Environment: ${process.env.NODE_ENV || "development"}`);
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}/`);
   });
 }
 
