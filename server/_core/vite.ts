@@ -5,9 +5,15 @@ import { nanoid } from "nanoid";
 import path from "path";
 
 export async function setupVite(app: Express, server: Server) {
-  // Dynamically import vite only in development to avoid bundling it
+  // Only called in development - dynamically import vite
+  if (process.env.NODE_ENV !== "development") {
+    console.warn("setupVite called in non-development environment");
+    return;
+  }
+
+  // Dynamically import vite only in development
+  // This import is NOT bundled by esbuild because it's only executed at runtime
   const { createServer: createViteServer } = await import("vite");
-  const viteConfig = (await import("../../vite.config")).default;
   
   const serverOptions = {
     middlewareMode: true,
@@ -15,9 +21,16 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  // Use configFile path instead of importing the config module
+  // This prevents esbuild from bundling vite.config.ts
+  const viteConfigPath = path.resolve(
+    import.meta.dirname,
+    "../..",
+    "vite.config.ts"
+  );
+
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    configFile: viteConfigPath,
     server: serverOptions,
     appType: "custom",
   });
