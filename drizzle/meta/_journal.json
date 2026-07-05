@@ -15,6 +15,13 @@
       "when": 1782305405090,
       "tag": "0001_tiresome_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1783272065018,
+      "tag": "0002_wide_vermin",
+      "breakpoints": true
     }
   ]
 }

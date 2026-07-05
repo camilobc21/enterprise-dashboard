@@ -1,0 +1,48 @@
+{
+  "errors": [
+    "Project config missing VITE_APP_ID",
+    "Project config missing DATABASE_URL",
+    "Project config missing OWNER_OPEN_ID",
+    "Project config missing VITE_APP_TITLE",
+    "Dependency vite is NOT installed",
+    "Dev Server: Found 1300 error(s) in logs",
+    "Browser console has 26 error(s)"
+  ],
+  "warnings": [],
+  "info": [
+    "Using remote database",
+    "  └─ [2026-07-01T15:53:15.589Z] code: 'ER_BAD_FIELD_ERROR',",
+    "  └─ [2026-07-01T15:54:03.042Z] code: 'ER_BAD_FIELD_ERROR',",
+    "  └─ [2026-07-01T15:55:06.804Z] code: 'ER_BAD_FIELD_ERROR',",
+    "  └─ [2026-07-03T15:43:25.483Z] {\"timestamp\":1783093404069,\"level\":\"DEBUG\",\"args\":[\"[vite] connected.\"],\"stack\":null}",
+    "  └─ [2026-07-03T15:50:41.640Z] {\"timestamp\":1783093840384,\"level\":\"LOG\",\"args\":[\"[Socket.io] Connected:\",\"x1p6LU9DQCcVN7iVAABZ\"],\"stack\":null}",
+    "  └─ [2026-07-03T15:53:53.471Z] {\"timestamp\":1783094031787,\"level\":\"LOG\",\"args\":[\"[Socket.io] Disconnected\"],\"stack\":null}",
+    "  └─ [2026-07-03T15:53:53.471Z] {\"timestamp\":1783094032069,\"level\":\"LOG\",\"args\":[\"[Socket.io] Connected:\",\"_p73cOjHmMoNtp09AAB2\"],\"stack\":null}",
+    "  └─ [2026-07-04T16:48:42.707Z] {\"timestamp\":1783183721403,\"level\":\"LOG\",\"args\":[\"[Socket.io] Connected:\",\"dblXjBJ9tWlolnYiAAAi\"],\"stack\":null}"
+  ],
+  "passed": [
+    "package.json exists at /home/ubuntu/enterprise-dashboard/package.json",
+    "vite.config.ts exists at /home/ubuntu/enterprise-dashboard/vite.config.ts",
+    "Server entry point exists at /home/ubuntu/enterprise-dashboard/server/_core/index.ts",
+    "Client entry point exists at /home/ubuntu/enterprise-dashboard/client/src/App.tsx",
+    "Database schema exists at /home/ubuntu/enterprise-dashboard/drizzle/schema.ts",
+    "Environment variable VITE_APP_ID is set",
+    "Environment variable DATABASE_URL is set",
+    "Environment variable JWT_SECRET is set",
+    "Environment variable OAUTH_SERVER_URL is set",
+    "Environment variable OWNER_OPEN_ID is set",
+    "Environment variable NODE_ENV is set",
+    "package.json has \"dev\" script",
+    "package.json has \"build\" script",
+    "package.json has \"start\" script",
+    "package.json has \"test\" script",
+    "Dependency express is installed",
+    "Dependency @trpc/server is installed",
+    "Dependency react is installed",
+    "Dependency drizzle-orm is installed",
+    "DATABASE_URL has valid format",
+    "VITE_APP_ID configured: bbVRvWNukTPPfhTnBgtzvm",
+    "OAUTH_SERVER_URL configured: https://api.manus.im",
+    "No failed network requests"
+  ]
+}

@@ -44,7 +44,15 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.redirect(302, "/");
+      // If the request came from a development domain, redirect back to it
+      const referer = req.get('referer') || '';
+      if (referer.includes('manus.computer')) {
+        // Extract the development domain from referer
+        const devDomain = referer.split('/').slice(0, 3).join('/');
+        res.redirect(302, `${devDomain}/`);
+      } else {
+        res.redirect(302, "/");
+      }
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
