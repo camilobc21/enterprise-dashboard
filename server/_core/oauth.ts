@@ -9,6 +9,29 @@ function getQueryParam(req: Request, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+/**
+ * Parse the OAuth state parameter.
+ * Supports two formats:
+ *  - New format: base64-encoded JSON with { redirectUri, returnPath }
+ *  - Legacy format: base64-encoded plain redirectUri string
+ */
+function parseState(state: string): { redirectUri: string; returnPath: string } {
+  const decoded = atob(state);
+  try {
+    const parsed = JSON.parse(decoded);
+    return {
+      redirectUri: parsed.redirectUri || decoded,
+      returnPath: parsed.returnPath || "/",
+    };
+  } catch {
+    // Legacy format: state is just the base64-encoded redirectUri
+    return {
+      redirectUri: decoded,
+      returnPath: "/",
+    };
+  }
+}
+
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
@@ -44,15 +67,11 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      // If the request came from a development domain, redirect back to it
-      const referer = req.get('referer') || '';
-      if (referer.includes('manus.computer')) {
-        // Extract the development domain from referer
-        const devDomain = referer.split('/').slice(0, 3).join('/');
-        res.redirect(302, `${devDomain}/`);
-      } else {
-        res.redirect(302, "/");
-      }
+      // Parse state to extract the return path
+      const { returnPath } = parseState(state);
+
+      // Redirect the user back to the page they were on before login
+      res.redirect(302, returnPath);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { useSocketContext } from "@/contexts/SocketContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,9 +30,9 @@ export default function WiFiAnalysis() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      navigate("/");
+      window.location.href = getLoginUrl();
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [loading, isAuthenticated]);
 
   // Procesar datos de canales para gráficos
   useEffect(() => {

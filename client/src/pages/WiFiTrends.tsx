@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +23,7 @@ export default function WiFiTrends() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      window.location.href = "/";
+      window.location.href = getLoginUrl();
     }
   }, [loading, isAuthenticated]);
 

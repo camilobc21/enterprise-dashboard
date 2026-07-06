@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -27,9 +28,9 @@ export default function DocumentManager() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      navigate("/");
+      window.location.href = getLoginUrl();
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [loading, isAuthenticated]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

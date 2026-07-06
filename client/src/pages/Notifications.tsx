@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -31,9 +32,9 @@ export default function Notifications() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      navigate("/");
+      window.location.href = getLoginUrl();
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [loading, isAuthenticated]);
 
   // Escuchar notificaciones en tiempo real
   useEffect(() => {

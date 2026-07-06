@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -23,8 +24,10 @@ export default function AdminPanel() {
   const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
 
   useEffect(() => {
-    if (!loading && (!isAuthenticated || user?.role !== "admin")) {
-      navigate("/");
+    if (!loading && !isAuthenticated) {
+      window.location.href = getLoginUrl();
+    } else if (!loading && isAuthenticated && user?.role !== "admin") {
+      navigate("/dashboard");
     }
   }, [loading, isAuthenticated, user?.role, navigate]);
 
