@@ -63,9 +63,9 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function resolveStaticDistPath(runtimeDirectory: string = import.meta.dirname) {
-  // The bundled server entry and the Vite-generated index.html share dist/.
-  // Keeping a single artifact directory also supports standard static hosting.
-  return runtimeDirectory;
+  // The packaged server entry lives in dist/ and Vite writes the frontend
+  // artifact to its public/ sibling, matching the deployment contract.
+  return path.resolve(runtimeDirectory, "public");
 }
 
 export function serveStatic(app: Express) {
