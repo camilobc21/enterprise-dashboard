@@ -93,6 +93,6 @@ Sistema completo de integración con API Flask:
 - [x] Integrar un proveedor de IA configurable con clave API propia para el chat, sin usar el servicio interno de Manus
 - [x] Corregir el error de publicación “Not found - index.html missing” y validar la ruta raíz en producción
 - [x] Retirar la configuración Vercel heredada que desvía la publicación de dist/public/index.html
-- [ ] Forzar una nueva publicación sin vercel.json y confirmar el flujo estándar de Express y Vite
-- [ ] Verificar en el dominio público que la ruta raíz carga la aplicación y no el error de index.html
+- [x] Forzar una nueva publicación sin vercel.json y confirmar el flujo estándar de Express y Vite
+- [x] Verificar en el dominio público que la ruta raíz carga la aplicación y no el error de index.html
 - [x] Unificar la salida de Vite y la ruta estática del servidor en dist para evitar rutas de entrada divergentes
