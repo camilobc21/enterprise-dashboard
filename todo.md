@@ -96,7 +96,9 @@ Sistema completo de integración con API Flask:
 - [x] Forzar una nueva publicación sin vercel.json y confirmar el flujo estándar de Express y Vite
 - [x] Verificar en el dominio público que la ruta raíz carga la aplicación y no el error de index.html
 - [x] Unificar la salida de Vite y la ruta estática del servidor en dist para evitar rutas de entrada divergentes
-- [ ] Preparar la configuración y documentación para ejecutar Enterprise Dashboard localmente desde Visual Studio Code
+- [x] Preparar la configuración y documentación para ejecutar Enterprise Dashboard localmente desde Visual Studio Code
+- [x] Habilitar un adaptador de almacenamiento local para documentos sin depender de servicios administrados
 - [x] Restaurar la salida dist/public requerida por la publicación y conservar la ruta estática correcta del servidor
-- [ ] Publicar la restauración de dist/public y confirmar que el proceso de publicación finaliza sin errores
-- [ ] Verificar que el dominio publicado carga la aplicación con la configuración restaurada
+- [x] Publicar la restauración de dist/public y confirmar que el proceso de publicación finaliza sin errores
+- [x] Verificar que el dominio publicado carga la aplicación con la configuración restaurada
+- [x] Confirmar explícitamente que la publicación activa corresponde a la restauración de dist/public mediante la comprobación pública posterior al despliegue
