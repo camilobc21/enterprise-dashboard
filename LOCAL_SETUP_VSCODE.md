@@ -130,6 +130,7 @@ pnpm start
 | `NODE_ENV` no se reconoce | Actualiza el repositorio, ejecuta `pnpm install` y usa el script actualizado `pnpm dev`. |
 | Error de conexión MySQL | Inicia MySQL en XAMPP, verifica el puerto `3306` y corrige usuario/contraseña en `DATABASE_URL`. |
 | El login muestra `Failed query` y menciona `passwordHash` o `loginMethod` | Detén el servidor, realiza una exportación de respaldo desde phpMyAdmin y ejecuta `pnpm.cmd auth:repair`. Reinicia con `.\run-dev.cmd`. |
+| Inicio sesión pero regreso a `/login` | Actualiza el repositorio, reinicia con `.\run-dev.cmd` y borra las cookies de `localhost` una vez. La versión actual usa una cookie `SameSite=Lax` compatible con HTTP local. |
 | No aparece el menú de administrador | Crea una base vacía y registra primero la cuenta administradora, o actualiza su rol desde MySQL. |
 | El chat muestra proveedor no configurado | Como administrador, abre **Gestión de roles** y registra tu proveedor compatible con OpenAI. |
 | WiFi sin datos | Inicia Flask, verifica `FLASK_API_URL` y usa la IP LAN del PC en el firmware ESP32. |
