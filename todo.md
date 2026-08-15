@@ -89,3 +89,4 @@ Sistema completo de integración con API Flask:
 - [x] Corregir errores de compilación e integrar de forma segura la autenticación básica por correo y contraseña
 - [x] Eliminar toda dependencia restante de Manus OAuth y usar sesiones JWT locales independientes
 - [x] Crear una vista administrativa protegida para listar usuarios registrados y gestionar sus roles
+- [x] Corregir la visibilidad del apartado Gestión de roles en la navegación administrativa
