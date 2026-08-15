@@ -1,6 +1,6 @@
 import { eq, and, desc, isNotNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
+import { users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, aiProviderConfigs, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -280,7 +280,10 @@ export async function createAIConversation(data: InsertAIConversation) {
   const db = await getDb();
   if (!db) return null;
   const result = await db.insert(aiConversations).values(data);
-  return result;
+  const insertId = Number((result as unknown as Array<{ insertId?: number }>)[0]?.insertId);
+  return Number.isSafeInteger(insertId) && insertId > 0
+    ? getAIConversationById(insertId)
+    : null;
 }
 
 export async function updateAIConversation(id: number, data: Partial<InsertAIConversation>) {
@@ -301,6 +304,46 @@ export async function createAIMessage(data: InsertAIMessage) {
   const db = await getDb();
   if (!db) return null;
   return db.insert(aiMessages).values(data);
+}
+
+export async function getAIProviderConfig() {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(aiProviderConfigs)
+    .where(eq(aiProviderConfigs.configKey, "global"))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+export async function upsertAIProviderConfig(data: {
+  providerName: string;
+  baseUrl: string;
+  model: string;
+  encryptedApiKey: string;
+  updatedBy: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .insert(aiProviderConfigs)
+    .values({ configKey: "global", ...data })
+    .onDuplicateKeyUpdate({
+      set: {
+        providerName: data.providerName,
+        baseUrl: data.baseUrl,
+        model: data.model,
+        encryptedApiKey: data.encryptedApiKey,
+        updatedBy: data.updatedBy,
+        updatedAt: new Date(),
+      },
+    });
+
+  return getAIProviderConfig();
 }
 
 // CRUD Records

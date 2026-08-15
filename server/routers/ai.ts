@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
-import { invokeLLM } from "../_core/llm";
-import { getUserAIConversations, getAIConversationById, createAIConversation, updateAIConversation, createAIMessage, getConversationMessages } from "../db";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { createAIMessage, createAIConversation, getAIConversationById, getConversationMessages, getUserAIConversations, updateAIConversation, upsertAIProviderConfig } from "../db";
+import { getConfiguredProviderStatus, invokeConfiguredAIChat, normalizeProviderBaseUrl } from "../ai/configuredProvider";
+import { encryptProviderKey } from "../ai/providerSecrets";
 import axios from "axios";
 
 const FLASK_API_URL = process.env.FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
@@ -63,6 +64,36 @@ ${historico?.map((h: any) => `- Escaneo ${h.id}: ${h.total_redes} redes, Saturac
 }
 
 export const aiRouter = router({
+  getProviderStatus: protectedProcedure.query(() => getConfiguredProviderStatus()),
+
+  saveProviderConfig: adminProcedure
+    .input(z.object({
+      providerName: z.string().trim().min(2, "Ingresa el nombre del proveedor.").max(100),
+      baseUrl: z.string().trim().url("Ingresa una URL válida.").max(500),
+      model: z.string().trim().min(1, "Ingresa el modelo.").max(160),
+      apiKey: z.string().trim().min(10, "La clave API parece demasiado corta.").max(1000),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const config = await upsertAIProviderConfig({
+        providerName: input.providerName,
+        baseUrl: normalizeProviderBaseUrl(input.baseUrl),
+        model: input.model,
+        encryptedApiKey: encryptProviderKey(input.apiKey),
+        updatedBy: ctx.user.id,
+      });
+
+      if (!config) throw new Error("No fue posible guardar la configuración de IA.");
+      return getConfiguredProviderStatus();
+    }),
+
+  testProviderConnection: adminProcedure.mutation(async () => {
+    const reply = await invokeConfiguredAIChat([
+      { role: "system", content: "Responde solo con la palabra OK." },
+      { role: "user", content: "Prueba de conexión" },
+    ]);
+    return { success: true, reply };
+  }),
+
   getConversations: protectedProcedure.query(({ ctx }) => getUserAIConversations(ctx.user.id)),
 
   getConversation: protectedProcedure
@@ -126,9 +157,7 @@ Sé conciso pero técnicamente preciso.`,
         content: input.message,
       });
 
-      const response = await invokeLLM({ messages: llmMessages });
-      const assistantContent = response.choices[0]?.message?.content;
-      const assistantMessage = typeof assistantContent === "string" ? assistantContent : "No response";
+      const assistantMessage = await invokeConfiguredAIChat(llmMessages);
 
       await createAIMessage({
         conversationId: input.conversationId,
@@ -161,15 +190,11 @@ Sé conciso pero técnicamente preciso.`,
 
 ${context}`;
 
-      const response = await invokeLLM({
-        messages: [
+      const analysis = await invokeConfiguredAIChat([
           { role: "system" as const, content: "Eres un experto en análisis de redes WiFi. Proporciona análisis detallado, técnico y accionable basado ÚNICAMENTE en los datos proporcionados." },
           { role: "user" as const, content: prompt },
-        ],
-      });
-
-      const analysis = response.choices[0]?.message?.content || "No se pudo generar análisis";
-      return { analysis: typeof analysis === "string" ? analysis : "Error en análisis" };
+        ]);
+      return { analysis };
     }),
 
   // Generar reporte automático
@@ -199,15 +224,11 @@ El reporte debe incluir:
 
 Formato: ${input.format || "markdown"}`;
 
-      const response = await invokeLLM({
-        messages: [
+      const report = await invokeConfiguredAIChat([
           { role: "system" as const, content: "Eres un experto en reportes técnicos de redes WiFi. Genera reportes profesionales, estructurados y basados en datos reales." },
           { role: "user" as const, content: prompt },
-        ],
-      });
-
-      const report = response.choices[0]?.message?.content || "Error generando reporte";
-      return { report: typeof report === "string" ? report : "Error en reporte" };
+        ]);
+      return { report };
     }),
 
   // Obtener recomendaciones específicas
@@ -244,14 +265,10 @@ Formato JSON estricto:
   }
 ]`;
 
-      const response = await invokeLLM({
-        messages: [
+      const content = await invokeConfiguredAIChat([
           { role: "system" as const, content: "Eres un experto en optimización de redes WiFi. Proporciona recomendaciones ESPECÍFICAS basadas ÚNICAMENTE en los datos reales proporcionados. Cada recomendación debe estar fundamentada en métricas concretas." },
           { role: "user" as const, content: prompt },
-        ],
-      });
-
-      const content = response.choices[0]?.message?.content || "[]";
+        ]);
       try {
         // Extraer JSON del contenido si está envuelto en markdown
         const jsonMatch = typeof content === "string" ? content.match(/\[[\s\S]*\]/g) : null;
@@ -283,15 +300,11 @@ Proporciona:
 4. Recomendaciones para minimizar interferencia
 5. Impacto de la interferencia en pérdida de paquetes`;
 
-      const response = await invokeLLM({
-        messages: [
+      const interference = await invokeConfiguredAIChat([
           { role: "system" as const, content: "Eres un experto en análisis espectral WiFi 2.4GHz. Proporciona análisis técnico detallado." },
           { role: "user" as const, content: prompt },
-        ],
-      });
-
-      const interference = response.choices[0]?.message?.content || "No se pudo analizar";
-      return { interference: typeof interference === "string" ? interference : "Error" };
+        ]);
+      return { interference };
     }),
 
   // Predicción de anomalías futuras
@@ -314,14 +327,10 @@ Proporciona:
 4. Ventana de tiempo estimada para problemas
 5. Acciones preventivas recomendadas`;
 
-      const response = await invokeLLM({
-        messages: [
+      const predictions = await invokeConfiguredAIChat([
           { role: "system" as const, content: "Eres un experto en predicción de problemas de redes WiFi. Analiza tendencias y proporciona predicciones accionables." },
           { role: "user" as const, content: prompt },
-        ],
-      });
-
-      const predictions = response.choices[0]?.message?.content || "No se pudo predecir";
-      return { predictions: typeof predictions === "string" ? predictions : "Error" };
+        ]);
+      return { predictions };
     }),
 });

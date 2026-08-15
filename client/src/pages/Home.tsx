@@ -84,7 +84,7 @@ export default function Home() {
               <CardTitle className="text-white">IA Integrada</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300">Asistente inteligente con Claude API para consultas y análisis</p>
+              <p className="text-slate-300">Asistente configurable con tu propia clave API para consultas y análisis</p>
             </CardContent>
           </Card>
 

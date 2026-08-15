@@ -28,6 +28,9 @@ export default function AIChat() {
     refetchInterval: 30000, // Actualizar cada 30 segundos (igual que ESP8266)
     enabled: true,
   });
+  const providerStatusQuery = trpc.ai.getProviderStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -83,6 +86,13 @@ Siempre menciona las métricas específicas del sistema actual.`,
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+    if (!providerStatusQuery.data?.configured) {
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: "La IA aún no está configurada. Un administrador debe añadir la clave API en Gestión de roles.",
+      }]);
+      return;
+    }
 
     setIsLoading(true);
     const userMessage = inputValue;
@@ -202,8 +212,8 @@ Siempre menciona las métricas específicas del sistema actual.`,
             <h1 className="text-3xl font-bold">Chat IA - Análisis WiFi</h1>
             <p className="text-muted-foreground mt-2">Asistente inteligente para optimización de red</p>
           </div>
-          <Badge variant="outline" className="bg-green-50 text-green-700">
-            {getDashboardQuery.isLoading ? "Cargando..." : "Conectado"}
+          <Badge variant="outline" className={providerStatusQuery.data?.configured ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}>
+            {providerStatusQuery.isLoading ? "Verificando IA..." : providerStatusQuery.data?.configured ? "IA configurada" : "IA sin configurar"}
           </Badge>
         </div>
 
@@ -223,6 +233,11 @@ Siempre menciona las métricas específicas del sistema actual.`,
                 <CardDescription>Haz preguntas sobre tu red WiFi</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!providerStatusQuery.data?.configured && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    La clave API todavía no está configurada. Un administrador puede añadirla en <strong>Gestión de roles</strong>.
+                  </div>
+                )}
                 <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-4 bg-muted/50">
                   {messages.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
@@ -260,9 +275,9 @@ Siempre menciona las métricas específicas del sistema actual.`,
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                      disabled={isLoading}
+                      disabled={isLoading || !providerStatusQuery.data?.configured}
                     />
-                    <Button onClick={handleSendMessage} disabled={isLoading} size="icon">
+                    <Button onClick={handleSendMessage} disabled={isLoading || !providerStatusQuery.data?.configured} size="icon">
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>

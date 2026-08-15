@@ -3,11 +3,13 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Crown, RefreshCw, ShieldCheck, UserCog, UsersRound } from "lucide-react";
+import { Crown, KeyRound, PlugZap, RefreshCw, ShieldCheck, UserCog, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -30,7 +32,16 @@ export default function AdminPanel() {
   const usersQuery = trpc.users.getAll.useQuery(undefined, {
     enabled: Boolean(isAuthenticated && user?.role === "admin"),
   });
+  const providerStatusQuery = trpc.ai.getProviderStatus.useQuery(undefined, {
+    enabled: Boolean(isAuthenticated && user?.role === "admin"),
+  });
   const updateRole = trpc.users.updateRole.useMutation();
+  const saveProviderConfig = trpc.ai.saveProviderConfig.useMutation();
+  const testProviderConnection = trpc.ai.testProviderConnection.useMutation();
+  const [providerName, setProviderName] = useState("OpenAI");
+  const [providerBaseUrl, setProviderBaseUrl] = useState("https://api.openai.com/v1");
+  const [providerModel, setProviderModel] = useState("gpt-4o-mini");
+  const [providerApiKey, setProviderApiKey] = useState("");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -50,6 +61,13 @@ export default function AdminPanel() {
     [registeredUsers]
   );
 
+  useEffect(() => {
+    if (!providerStatusQuery.data?.configured) return;
+    setProviderName(providerStatusQuery.data.providerName);
+    setProviderBaseUrl(providerStatusQuery.data.baseUrl);
+    setProviderModel(providerStatusQuery.data.model);
+  }, [providerStatusQuery.data]);
+
   async function saveRole(userId: number, currentRole: Role) {
     const nextRole = draftRoles[userId] ?? currentRole;
     if (nextRole === currentRole) return;
@@ -67,6 +85,36 @@ export default function AdminPanel() {
       ]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No fue posible actualizar el rol.");
+    }
+  }
+
+  async function saveAIProvider() {
+    if (!providerApiKey.trim()) {
+      toast.error("Pega la clave API antes de guardar la configuración.");
+      return;
+    }
+
+    try {
+      await saveProviderConfig.mutateAsync({
+        providerName,
+        baseUrl: providerBaseUrl,
+        model: providerModel,
+        apiKey: providerApiKey,
+      });
+      setProviderApiKey("");
+      await providerStatusQuery.refetch();
+      toast.success("Configuración de IA guardada de forma segura.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar la configuración de IA.");
+    }
+  }
+
+  async function testAIProvider() {
+    try {
+      const result = await testProviderConnection.mutateAsync();
+      toast.success(`Conexión correcta. Respuesta: ${result.reply.slice(0, 80)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo conectar con el proveedor de IA.");
     }
   }
 
@@ -116,6 +164,49 @@ export default function AdminPanel() {
             <CardContent className="text-sm text-muted-foreground">Puedes promover o degradar a otros usuarios.</CardContent>
           </Card>
         </section>
+
+        <Card className="border-blue-200/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-blue-600" /> IA con tu propia clave</CardTitle>
+            <CardDescription>
+              Configura un proveedor compatible con la API de chat de OpenAI. La clave se cifra antes de guardarse y nunca vuelve a mostrarse.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant={providerStatusQuery.data?.configured ? "default" : "secondary"}>
+                {providerStatusQuery.data?.configured ? "Proveedor configurado" : "Pendiente de configurar"}
+              </Badge>
+              {providerStatusQuery.data?.configured ? <span className="text-muted-foreground">El chat usará {providerStatusQuery.data.providerName} · {providerStatusQuery.data.model}</span> : null}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="provider-name">Proveedor</Label>
+                <Input id="provider-name" value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="OpenAI" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="provider-model">Modelo</Label>
+                <Input id="provider-model" value={providerModel} onChange={(event) => setProviderModel(event.target.value)} placeholder="gpt-4o-mini" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="provider-url">URL base compatible con OpenAI</Label>
+                <Input id="provider-url" type="url" value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.openai.com/v1" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="provider-key">Clave API</Label>
+                <Input id="provider-key" type="password" autoComplete="off" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerStatusQuery.data?.configured ? "Introduce una nueva clave solo para reemplazar la actual" : "Pega tu clave API"} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={saveAIProvider} disabled={saveProviderConfig.isPending}>
+                <KeyRound className="mr-2 h-4 w-4" />{saveProviderConfig.isPending ? "Guardando…" : "Guardar clave y configuración"}
+              </Button>
+              <Button variant="outline" onClick={testAIProvider} disabled={!providerStatusQuery.data?.configured || testProviderConnection.isPending}>
+                <PlugZap className="mr-2 h-4 w-4" />{testProviderConnection.isPending ? "Probando…" : "Probar conexión"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -155,6 +155,25 @@ export type AIMessage = typeof aiMessages.$inferSelect;
 export type InsertAIMessage = typeof aiMessages.$inferInsert;
 
 /**
+ * Global bring-your-own-key configuration for the dashboard chat.
+ * The API key is encrypted before storage and is never returned to the client.
+ */
+export const aiProviderConfigs = mysqlTable("ai_provider_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  configKey: varchar("configKey", { length: 32 }).notNull().unique(),
+  providerName: varchar("providerName", { length: 100 }).notNull(),
+  baseUrl: varchar("baseUrl", { length: 500 }).notNull(),
+  model: varchar("model", { length: 160 }).notNull(),
+  encryptedApiKey: text("encryptedApiKey").notNull(),
+  updatedBy: int("updatedBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AIProviderConfig = typeof aiProviderConfigs.$inferSelect;
+export type InsertAIProviderConfig = typeof aiProviderConfigs.$inferInsert;
+
+/**
  * CRUD Records table for generic data management
  */
 export const crudRecords = mysqlTable("crud_records", {
