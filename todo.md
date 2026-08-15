@@ -95,3 +95,4 @@ Sistema completo de integración con API Flask:
 - [x] Retirar la configuración Vercel heredada que desvía la publicación de dist/public/index.html
 - [ ] Forzar una nueva publicación sin vercel.json y confirmar el flujo estándar de Express y Vite
 - [ ] Verificar en el dominio público que la ruta raíz carga la aplicación y no el error de index.html
+- [x] Unificar la salida de Vite y la ruta estática del servidor en dist para evitar rutas de entrada divergentes
