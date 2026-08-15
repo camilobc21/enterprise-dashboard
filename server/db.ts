@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, isNotNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
 
@@ -43,13 +43,19 @@ export async function createLocalUser(input: {
     throw new Error("Database not available");
   }
 
+  const [{ count: registeredUserCount }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(isNotNull(users.passwordHash));
+
   await db.insert(users).values({
     openId: input.openId,
     name: input.name,
     email: input.email,
     passwordHash: input.passwordHash,
     loginMethod: "email_password",
-    role: "user",
+    // The first locally registered account initializes the administration area.
+    role: Number(registeredUserCount) === 0 ? "admin" : "user",
     lastSignedIn: new Date(),
   });
 
@@ -79,7 +85,31 @@ export async function updateUserLastSignedIn(userId: number) {
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(users);
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      lastSignedIn: users.lastSignedIn,
+    })
+    .from(users)
+    .where(isNotNull(users.passwordHash))
+    .orderBy(desc(users.createdAt));
+}
+
+export async function countRegisteredAdmins() {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(and(eq(users.role, "admin"), isNotNull(users.passwordHash)));
+
+  return Number(count);
 }
 
 export async function getUserById(id: number) {

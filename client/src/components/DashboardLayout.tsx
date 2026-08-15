@@ -35,6 +35,7 @@ const menuItems = [
   { icon: Bell, label: "Notifications", path: "/notifications" },
   { icon: MessageSquare, label: "AI Chat", path: "/ai" },
   { icon: FileText, label: "Documents", path: "/documents" },
+  { icon: Users, label: "Gestión de roles", path: "/admin", adminOnly: true },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -202,12 +203,7 @@ function DashboardLayoutContent({
               {menuItems.map(item => {
                 // Use user?.role from useAuth
                 const userRole = user?.role;
-                // Hide Dashboard from non-admin users
-                if (item.path === "/dashboard" && userRole !== "admin") {
-                  return null;
-                }
-                // Hide Admin Panel from non-admin users
-                if (item.path === "/admin" && userRole !== "admin") {
+                if (item.adminOnly && userRole !== "admin") {
                   return null;
                 }
                 const isActive = location === item.path;
