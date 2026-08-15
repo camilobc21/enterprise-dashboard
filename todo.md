@@ -91,3 +91,4 @@ Sistema completo de integración con API Flask:
 - [x] Crear una vista administrativa protegida para listar usuarios registrados y gestionar sus roles
 - [x] Corregir la visibilidad del apartado Gestión de roles en la navegación administrativa
 - [x] Integrar un proveedor de IA configurable con clave API propia para el chat, sin usar el servicio interno de Manus
+- [x] Corregir el error de publicación “Not found - index.html missing” y validar la ruta raíz en producción
