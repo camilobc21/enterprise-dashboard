@@ -285,7 +285,13 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
-    // If user not in DB, sync from OAuth server automatically
+    // A local email/password session can never be synchronized through OAuth.
+    // Treat a missing local user as an invalid session instead of calling an external provider.
+    if (!user && sessionUserId.startsWith("local:")) {
+      throw ForbiddenError("Local user not found");
+    }
+
+    // Legacy OAuth sessions can still be synchronized when they are already in use.
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");

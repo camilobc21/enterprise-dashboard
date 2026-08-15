@@ -15,11 +15,14 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import Home from "./pages/Home";
+import { AuthPage } from "./pages/Auth";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/login"}><AuthPage mode="login" /></Route>
+      <Route path={"/register"}><AuthPage mode="register" /></Route>
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/admin"} component={AdminPanel} />
       <Route path={"/crud"} component={CRUDManager} />

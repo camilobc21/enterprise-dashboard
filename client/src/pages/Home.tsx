@@ -1,8 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLoginUrl } from "@/const";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 import { BarChart3, Lock, Zap, Users, FileText, MessageSquare, TrendingUp, ArrowRight } from "lucide-react";
 
@@ -30,7 +29,7 @@ export default function Home() {
             <span className="text-xl font-bold text-white">Enterprise Dashboard</span>
           </div>
           <Button asChild variant="default">
-            <a href={getLoginUrl()}>Iniciar Sesión</a>
+            <Link href="/login">Iniciar sesión</Link>
           </Button>
         </div>
       </nav>
@@ -45,9 +44,9 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center">
           <Button asChild size="lg" className="gap-2">
-            <a href={getLoginUrl()}>
-              Comenzar Ahora <ArrowRight className="h-4 w-4" />
-            </a>
+            <Link href="/register">
+              Crear cuenta <ArrowRight className="h-4 w-4" />
+            </Link>
           </Button>
           <Button variant="outline" size="lg">
             Ver Demo
@@ -65,7 +64,7 @@ export default function Home() {
               <CardTitle className="text-white">Autenticación Segura</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300">JWT y OAuth2 integrados para máxima seguridad en tus datos</p>
+              <p className="text-slate-300">Contraseñas protegidas y sesiones seguras para tus datos</p>
             </CardContent>
           </Card>
 
@@ -145,7 +144,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-white mb-4">¿Listo para comenzar?</h2>
           <p className="text-blue-100 mb-8">Accede ahora y descubre todas las características del dashboard</p>
           <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-slate-100">
-            <a href={getLoginUrl()}>Iniciar Sesión Ahora</a>
+            <Link href="/login">Iniciar sesión ahora</Link>
           </Button>
         </div>
       </section>
