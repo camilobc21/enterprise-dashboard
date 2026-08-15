@@ -104,3 +104,6 @@ Sistema completo de integración con API Flask:
 - [x] Confirmar explícitamente que la publicación activa corresponde a la restauración de dist/public mediante la comprobación pública posterior al despliegue
 - [x] Hacer portátil el script pnpm dev con cross-env y documentar el uso seguro de pnpm.cmd en PowerShell
 - [x] Añadir un lanzador Windows que evite el bloqueo de pnpm.ps1 en PowerShell
+- [x] Preparar una reparación local no destructiva para las columnas de autenticación de la tabla users
+- [x] Completar la reparación de users con la columna name y validación de restricciones de unicidad
+- [ ] Confirmar la ejecución de la reparación en MySQL local y validar el inicio de sesión
