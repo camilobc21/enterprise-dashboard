@@ -74,6 +74,21 @@ Después inicia el servidor de desarrollo:
 pnpm dev
 ```
 
+En PowerShell con la política de scripts restringida, ejecuta primero este comando **solo para la terminal actual** y luego inicia el proyecto:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+pnpm.cmd dev
+```
+
+La alternativa recomendada, que no requiere cambiar la política de PowerShell, es ejecutar el lanzador incluido después de `pnpm install`:
+
+```powershell
+.\run-dev.cmd
+```
+
+Como otra alternativa, selecciona el perfil de terminal **Command Prompt** en Visual Studio Code y ejecuta `pnpm dev`. Los scripts del proyecto usan `cross-env`, por lo que el valor de `NODE_ENV` funciona tanto en Windows como en macOS y Linux.
+
 Abre [http://localhost:3000](http://localhost:3000). Crea la primera cuenta para ser administrador. Desde **Gestión de roles** puedes añadir la URL, el modelo y la clave de tu proveedor de IA compatible con OpenAI; la clave se cifra en la base de datos local.
 
 ## 5. Activar análisis WiFi y ESP32
@@ -110,6 +125,9 @@ pnpm start
 | Síntoma | Acción recomendada |
 |---|---|
 | `DATABASE_URL is required` | Confirma que `.env` está en la raíz del repositorio y vuelve a iniciar `pnpm dev`. |
+| PowerShell bloquea `pnpm.ps1` | Ejecuta `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` y usa `pnpm.cmd dev`, o abre una terminal Command Prompt. |
+| Quiero iniciar sin cambiar la política de PowerShell | Después de `pnpm install`, ejecuta `.\run-dev.cmd`. |
+| `NODE_ENV` no se reconoce | Actualiza el repositorio, ejecuta `pnpm install` y usa el script actualizado `pnpm dev`. |
 | Error de conexión MySQL | Inicia MySQL en XAMPP, verifica el puerto `3306` y corrige usuario/contraseña en `DATABASE_URL`. |
 | No aparece el menú de administrador | Crea una base vacía y registra primero la cuenta administradora, o actualiza su rol desde MySQL. |
 | El chat muestra proveedor no configurado | Como administrador, abre **Gestión de roles** y registra tu proveedor compatible con OpenAI. |

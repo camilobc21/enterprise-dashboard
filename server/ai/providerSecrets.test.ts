@@ -24,9 +24,11 @@ describe("AI provider key protection", () => {
 
   it("rejects a modified encrypted API key", () => {
     const encrypted = encryptProviderKey("sk-test-key");
-    const finalCharacter = encrypted.endsWith("a") ? "b" : "a";
+    const [iv, tag, ciphertext] = encrypted.split(".");
+    const firstCharacter = ciphertext[0] === "a" ? "b" : "a";
+    const altered = `${iv}.${tag}.${firstCharacter}${ciphertext.slice(1)}`;
 
-    expect(() => decryptProviderKey(`${encrypted.slice(0, -1)}${finalCharacter}`)).toThrow();
+    expect(() => decryptProviderKey(altered)).toThrow();
   });
 
   it("accepts HTTPS provider endpoints and removes the trailing slash", () => {
