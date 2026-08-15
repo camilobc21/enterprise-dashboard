@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
 import { hashPassword, verifyPassword } from "../auth/password";
+import { createLocalSession } from "../auth/session";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { sdk } from "../_core/sdk";
 import { publicProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 
@@ -14,8 +15,8 @@ const credentialsSchema = z.object({
 });
 
 function setSessionCookie(
-  res: Parameters<typeof getSessionCookieOptions>[0] extends never ? never : any,
-  req: Parameters<typeof getSessionCookieOptions>[0],
+  res: Response,
+  req: Request,
   token: string
 ) {
   res.cookie(COOKIE_NAME, token, {
@@ -47,9 +48,9 @@ export const authRouter = router({
         passwordHash: hashPassword(input.password),
       });
 
-      const token = await sdk.createSessionToken(user.openId, {
-        name: user.name || input.name,
-        expiresInMs: ONE_YEAR_MS,
+      const token = await createLocalSession({
+        userId: user.id,
+        email: user.email,
       });
       setSessionCookie(ctx.res, ctx.req, token);
 
@@ -74,9 +75,9 @@ export const authRouter = router({
     }
 
     await db.updateUserLastSignedIn(user.id);
-    const token = await sdk.createSessionToken(user.openId, {
-      name: user.name || "",
-      expiresInMs: ONE_YEAR_MS,
+    const token = await createLocalSession({
+      userId: user.id,
+      email: user.email,
     });
     setSessionCookie(ctx.res, ctx.req, token);
 
