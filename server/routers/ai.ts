@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
-import { createAIMessage, createAIConversation, getAIConversationById, getConversationMessages, getUserAIConversations, updateAIConversation, upsertAIProviderConfig } from "../db";
+import { activateAIProviderConfig, createAIMessage, createAIConversation, deleteAIProviderConfig, getAIProviderConfigByKey, getAIConversationById, getConversationMessages, getUserAIConversations, listAIProviderConfigs, updateAIConversation, upsertAIProviderConfig } from "../db";
 import { getConfiguredProviderStatus, invokeConfiguredAIChat, normalizeProviderBaseUrl } from "../ai/configuredProvider";
 import { encryptProviderKey } from "../ai/providerSecrets";
 import axios from "axios";
@@ -66,24 +66,46 @@ ${historico?.map((h: any) => `- Escaneo ${h.id}: ${h.total_redes} redes, Saturac
 export const aiRouter = router({
   getProviderStatus: protectedProcedure.query(() => getConfiguredProviderStatus()),
 
+  listProviderConfigs: adminProcedure.query(() => listAIProviderConfigs()),
+
   saveProviderConfig: adminProcedure
     .input(z.object({
+      configKey: z.string().trim().min(2).max(32).regex(/^[a-z0-9_-]+$/i, "El identificador del proveedor no es válido."),
       providerName: z.string().trim().min(2, "Ingresa el nombre del proveedor.").max(100),
       baseUrl: z.string().trim().url("Ingresa una URL válida.").max(500),
       model: z.string().trim().min(1, "Ingresa el modelo.").max(160),
-      apiKey: z.string().trim().min(10, "La clave API parece demasiado corta.").max(1000),
+      apiKey: z.string().trim().min(10, "La clave API parece demasiado corta.").max(1000).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const existing = await getAIProviderConfigByKey(input.configKey);
+      if (!input.apiKey && !existing) throw new Error("Pega una clave API para guardar un proveedor nuevo.");
       const config = await upsertAIProviderConfig({
+        configKey: input.configKey,
         providerName: input.providerName,
         baseUrl: normalizeProviderBaseUrl(input.baseUrl, input.providerName),
         model: input.model,
-        encryptedApiKey: encryptProviderKey(input.apiKey),
+        encryptedApiKey: input.apiKey ? encryptProviderKey(input.apiKey) : existing!.encryptedApiKey,
         updatedBy: ctx.user.id,
       });
 
       if (!config) throw new Error("No fue posible guardar la configuración de IA.");
       return getConfiguredProviderStatus();
+    }),
+
+  activateProviderConfig: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const provider = await activateAIProviderConfig(input.id);
+      if (!provider) throw new Error("El proveedor seleccionado ya no existe.");
+      return getConfiguredProviderStatus();
+    }),
+
+  deleteProviderConfig: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const deleted = await deleteAIProviderConfig(input.id);
+      if (!deleted) throw new Error("El proveedor seleccionado ya no existe.");
+      return { deleted: true };
     }),
 
   testProviderConnection: adminProcedure.mutation(async () => {

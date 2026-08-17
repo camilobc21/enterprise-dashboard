@@ -9,6 +9,8 @@ describe("local AI provider schema repair", () => {
 
     expect(content).toContain("CREATE TABLE \\`ai_provider_configs\\`");
     expect(content).toContain("ai_provider_configs_configKey_unique");
+    expect(content).toContain("isActive");
+    expect(content).toContain("ai_provider_configs_isActive_idx");
     expect(content).toContain("encryptedApiKey");
     expect(content).not.toContain("DROP TABLE");
   });

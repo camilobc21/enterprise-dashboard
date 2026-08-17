@@ -392,16 +392,43 @@ export async function getAIProviderConfig() {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db
+  const active = await db
     .select()
     .from(aiProviderConfigs)
-    .where(eq(aiProviderConfigs.configKey, "global"))
+    .where(eq(aiProviderConfigs.isActive, true))
     .limit(1);
 
+  return active[0] ?? null;
+}
+
+export async function getAIProviderConfigByKey(configKey: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(aiProviderConfigs).where(eq(aiProviderConfigs.configKey, configKey)).limit(1);
   return result[0] ?? null;
 }
 
+export async function listAIProviderConfigs() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: aiProviderConfigs.id,
+      configKey: aiProviderConfigs.configKey,
+      providerName: aiProviderConfigs.providerName,
+      baseUrl: aiProviderConfigs.baseUrl,
+      model: aiProviderConfigs.model,
+      isActive: aiProviderConfigs.isActive,
+      updatedBy: aiProviderConfigs.updatedBy,
+      createdAt: aiProviderConfigs.createdAt,
+      updatedAt: aiProviderConfigs.updatedAt,
+    })
+    .from(aiProviderConfigs)
+    .orderBy(desc(aiProviderConfigs.isActive), desc(aiProviderConfigs.updatedAt));
+}
+
 export async function upsertAIProviderConfig(data: {
+  configKey: string;
   providerName: string;
   baseUrl: string;
   model: string;
@@ -411,21 +438,42 @@ export async function upsertAIProviderConfig(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  await db.update(aiProviderConfigs).set({ isActive: false }).where(eq(aiProviderConfigs.isActive, true));
   await db
     .insert(aiProviderConfigs)
-    .values({ configKey: "global", ...data })
+    .values({ ...data, isActive: true })
     .onDuplicateKeyUpdate({
       set: {
         providerName: data.providerName,
         baseUrl: data.baseUrl,
         model: data.model,
         encryptedApiKey: data.encryptedApiKey,
+        isActive: true,
         updatedBy: data.updatedBy,
         updatedAt: new Date(),
       },
     });
 
-  return getAIProviderConfig();
+  return getAIProviderConfigByKey(data.configKey);
+}
+
+export async function activateAIProviderConfig(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const provider = await db.select().from(aiProviderConfigs).where(eq(aiProviderConfigs.id, id)).limit(1);
+  if (!provider[0]) return null;
+  await db.update(aiProviderConfigs).set({ isActive: false }).where(eq(aiProviderConfigs.isActive, true));
+  await db.update(aiProviderConfigs).set({ isActive: true, updatedAt: new Date() }).where(eq(aiProviderConfigs.id, id));
+  return provider[0];
+}
+
+export async function deleteAIProviderConfig(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const provider = await db.select().from(aiProviderConfigs).where(eq(aiProviderConfigs.id, id)).limit(1);
+  if (!provider[0]) return false;
+  await db.delete(aiProviderConfigs).where(eq(aiProviderConfigs.id, id));
+  return true;
 }
 
 // CRUD Records

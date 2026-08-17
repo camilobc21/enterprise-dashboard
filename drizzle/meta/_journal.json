@@ -43,6 +43,13 @@
       "when": 1786976246916,
       "tag": "0005_left_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786997271787,
+      "tag": "0006_rich_naoko",
+      "breakpoints": true
     }
   ]
 }

@@ -193,10 +193,13 @@ export const aiProviderConfigs = mysqlTable("ai_provider_configs", {
   baseUrl: varchar("baseUrl", { length: 500 }).notNull(),
   model: varchar("model", { length: 160 }).notNull(),
   encryptedApiKey: text("encryptedApiKey").notNull(),
+  isActive: boolean("isActive").default(false).notNull(),
   updatedBy: int("updatedBy").notNull().references(() => users.id),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  activeProviderIdx: index("ai_provider_configs_isActive_idx").on(table.isActive),
+}));
 
 export type AIProviderConfig = typeof aiProviderConfigs.$inferSelect;
 export type InsertAIProviderConfig = typeof aiProviderConfigs.$inferInsert;
