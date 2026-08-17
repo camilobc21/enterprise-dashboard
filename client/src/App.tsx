@@ -10,6 +10,7 @@ import Notifications from "@/pages/Notifications";
 import WiFiAnalysis from "@/pages/WiFiAnalysis";
 import WiFiNetworks from "@/pages/WiFiNetworks";
 import WiFiTrends from "@/pages/WiFiTrends";
+import NetworkDevices from "@/pages/NetworkDevices";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -32,6 +33,7 @@ function Router() {
       <Route path={"/wifi-analysis"} component={WiFiAnalysis} />
       <Route path={"/wifi-networks"} component={WiFiNetworks} />
       <Route path={"/wifi-trends"} component={WiFiTrends} />
+      <Route path={"/network-devices"} component={NetworkDevices} />
       <Route path={"/crud"} component={CRUDManager} />
       <Route component={NotFound} />
     </Switch>

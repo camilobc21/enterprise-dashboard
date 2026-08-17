@@ -11,6 +11,7 @@ import { wifiRouter } from "./routers/wifi";
 import { exportRouter } from "./routers/export";
 import { alertsRouter } from "./routers/alerts";
 import { authRouter } from "./routers/auth";
+import { networkDevicesRouter } from "./routers/networkDevices";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -26,6 +27,7 @@ export const appRouter = router({
   wifi: wifiRouter,
   export: exportRouter,
   alerts: alertsRouter,
+  networkDevices: networkDevicesRouter,
 });
 
 export type AppRouter = typeof appRouter;

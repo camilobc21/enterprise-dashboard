@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, longtext, index } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, longtext, index, uniqueIndex } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -120,6 +120,34 @@ export const documents = mysqlTable("documents", {
 
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = typeof documents.$inferInsert;
+
+/**
+ * Inventory of devices detected on a network that the dashboard owner is authorized to monitor.
+ * Data can be entered by an administrator or supplied by an approved router/DHCP/ARP collector.
+ */
+export const networkDevices = mysqlTable("network_devices", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().references(() => users.id),
+  displayName: varchar("displayName", { length: 160 }).notNull(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  macAddress: varchar("macAddress", { length: 32 }).notNull(),
+  vendor: varchar("vendor", { length: 160 }),
+  deviceType: mysqlEnum("deviceType", ["unknown", "computer", "phone", "tablet", "iot", "printer", "router", "camera", "server"]).default("unknown").notNull(),
+  status: mysqlEnum("status", ["online", "offline", "unknown"]).default("unknown").notNull(),
+  isTrusted: boolean("isTrusted").default(false).notNull(),
+  source: mysqlEnum("source", ["manual", "router_dhcp", "router_arp", "esp32"]).default("manual").notNull(),
+  firstSeen: timestamp("firstSeen").defaultNow().notNull(),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  ownerIdIdx: index("network_devices_ownerId_idx").on(table.ownerId),
+  lastSeenIdx: index("network_devices_lastSeen_idx").on(table.lastSeen),
+  ownerMacUnique: uniqueIndex("network_devices_owner_mac_unique").on(table.ownerId, table.macAddress),
+}));
+
+export type NetworkDevice = typeof networkDevices.$inferSelect;
+export type InsertNetworkDevice = typeof networkDevices.$inferInsert;
 
 /**
  * AI Conversations table for storing chat histories

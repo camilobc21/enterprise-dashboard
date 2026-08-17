@@ -1,6 +1,6 @@
 import { eq, and, desc, isNotNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, aiProviderConfigs, crudRecords, InsertCRUDRecord } from "../drizzle/schema";
+import { users, dashboardMetrics, InsertDashboardMetric, auditLogs, InsertAuditLog, notifications, InsertNotification, documents, InsertDocument, aiConversations, InsertAIConversation, aiMessages, InsertAIMessage, aiProviderConfigs, crudRecords, InsertCRUDRecord, networkDevices, InsertNetworkDevice } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -260,6 +260,60 @@ export async function deleteDocument(id: number) {
   if (!db) return false;
   await db.delete(documents).where(eq(documents.id, id));
   return true;
+}
+
+// Connected network device inventory
+export async function getNetworkDevices(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(networkDevices)
+    .where(eq(networkDevices.ownerId, ownerId))
+    .orderBy(desc(networkDevices.lastSeen));
+}
+
+export async function upsertNetworkDevice(data: InsertNetworkDevice) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const now = new Date();
+  await db.insert(networkDevices).values({ ...data, lastSeen: now }).onDuplicateKeyUpdate({
+    set: {
+      displayName: data.displayName,
+      ipAddress: data.ipAddress,
+      vendor: data.vendor,
+      deviceType: data.deviceType,
+      status: data.status,
+      isTrusted: data.isTrusted,
+      source: data.source,
+      lastSeen: now,
+    },
+  });
+
+  const result = await db
+    .select()
+    .from(networkDevices)
+    .where(and(eq(networkDevices.ownerId, data.ownerId), eq(networkDevices.macAddress, data.macAddress)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateNetworkDeviceTrust(ownerId: number, id: number, isTrusted: boolean) {
+  const db = await getDb();
+  if (!db) return null;
+
+  await db
+    .update(networkDevices)
+    .set({ isTrusted })
+    .where(and(eq(networkDevices.id, id), eq(networkDevices.ownerId, ownerId)));
+
+  const result = await db
+    .select()
+    .from(networkDevices)
+    .where(and(eq(networkDevices.id, id), eq(networkDevices.ownerId, ownerId)))
+    .limit(1);
+  return result[0] ?? null;
 }
 
 // AI Conversations
