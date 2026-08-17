@@ -84,7 +84,14 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
 ```
 
-Para que el dashboard Node/Express consuma los datos, la ruta `/api/dashboard` de Flask debe devolver la información con las claves que ya espera el cliente del proyecto: `ultimo_escaneo`, `redes`, `canales`, `alertas`, `prediccion` e `historico`.
+El repositorio ya incluye un servidor Flask completo en `app.py`: recibe `/api/scan`, guarda cada escaneo en MySQL/XAMPP y expone `/api/dashboard`. Antes de iniciarlo, instala las dependencias desde la raíz del proyecto:
+
+```cmd
+pip install -r requirements.txt
+python app.py
+```
+
+Para que el dashboard Node/Express consuma los datos, la ruta `/api/dashboard` de Flask devuelve las claves `ultimo_escaneo`, `redes`, `canales`, `alertas`, `prediccion` e `historico`.
 
 ## 4. Probar la conexión
 

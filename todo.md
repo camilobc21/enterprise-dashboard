@@ -121,3 +121,4 @@ Sistema completo de integración con API Flask:
 - [x] Poblar la caché ARP mediante descubrimiento activo limitado a la red privada autorizada antes de listar dispositivos
 - [ ] Diagnosticar y corregir la falta de registros reales tras la detección de dispositivos en Windows/XAMPP
 - [x] Mostrar el inventario de dispositivos compartido del proyecto a todos los usuarios autenticados
+- [x] Guardar los escaneos del ESP32 recibidos por Flask en las tablas WiFi de MySQL/XAMPP

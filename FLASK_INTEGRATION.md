@@ -1,8 +1,8 @@
-# Integración Flask - Enterprise Dashboard
+# Integración Flask + MySQL - Enterprise Dashboard
 
 ## 📋 Descripción
 
-La dashboard React ha sido adaptada para funcionar directamente con tu API Flask (`app.py`). Todos los datos de WiFi se obtienen desde Flask en lugar de la base de datos local.
+La dashboard React consulta el servicio Flask local (`app.py`). Cada escaneo recibido desde el ESP32 se guarda en la misma base de datos MySQL/XAMPP del proyecto, dentro de `wifi_scans`, `wifi_channels`, `wifi_alerts` y `wifi_predictions`.
 
 ## 🔗 Configuración
 
@@ -12,6 +12,7 @@ Crear archivo `.env` en la raíz del proyecto:
 
 ```env
 FLASK_API_URL=http://localhost:5000
+DATABASE_URL=mysql://root:@127.0.0.1:3306/enterprise_dashboard
 ```
 
 O si usas ngrok para desarrollo:
@@ -45,14 +46,16 @@ La dashboard llama a estos endpoints de tu Flask:
 | Endpoint | Método | Descripción |
 |----------|--------|-------------|
 | `/api/dashboard` | GET | Obtiene todos los datos del dashboard |
-| `/api/esp_scan` | POST | Recibe escaneos del ESP8266 |
+| `/api/scan` | POST | Recibe escaneos del ESP32 y los guarda en MySQL |
+| `/api/esp_scan` | POST | Alias compatible para recibir escaneos heredados |
+| `/api/health` | GET | Comprueba Flask y la conexión con MySQL |
 
 ## 🔄 Flujo de Datos
 
 ```
-ESP8266 (magnus.ino)
+ESP32 (esp32_wifi_dashboard.ino)
     ↓
-    POST /api/esp_scan
+    POST /api/scan
     ↓
 Flask API (app.py)
     ↓
@@ -86,20 +89,26 @@ Visualización en tiempo real
 
 ## 🚀 Cómo Ejecutar
 
-### Paso 1: Iniciar Flask
+### Paso 1: Instalar dependencias e iniciar Flask
 
-```bash
-cd /ruta/a/tu/app.py
+```cmd
+cd enterprise-dashboard
+pip install -r requirements.txt
 python app.py
 ```
 
 Deberías ver:
 ```
 ==================================================
-SERVIDOR WIFI IA PRO v2 - CON ANÁLISIS ESPECTRAL
+FLASK LOCAL - ENTERPRISE DASHBOARD + MYSQL
 URL: http://0.0.0.0:5000
-Dashboard: http://localhost:5000
 ==================================================
+```
+
+Antes de encender el ESP32, comprueba que la respuesta contiene `"db":"connected"`:
+
+```cmd
+curl http://127.0.0.1:5000/api/health
 ```
 
 ### Paso 2: Configurar Dashboard
@@ -112,12 +121,14 @@ En la dashboard, asegúrate de que `FLASK_API_URL` está configurado correctamen
 pnpm dev
 ```
 
-### Paso 4: Enviar Datos del ESP8266
+### Paso 4: Enviar datos del ESP32
 
-El ESP8266 enviará datos automáticamente cada 30 segundos a:
+El ESP32 enviará datos automáticamente cada 30 segundos a:
 ```
-POST http://localhost:5000/api/esp_scan
+POST http://IP_DEL_PC:5000/api/scan
 ```
+
+Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Debe aparecer una fila nueva por cada escaneo recibido. Los trece canales calculados se guardan en `wifi_channels`; las alertas y la predicción se guardan, respectivamente, en `wifi_alerts` y `wifi_predictions`.
 
 ## 📡 Formato de Datos
 
@@ -201,15 +212,16 @@ POST http://localhost:5000/api/esp_scan
 
 ### Error: "No se puede conectar a la API Flask"
 
-1. Verifica que Flask está ejecutándose: `http://localhost:5000/api/health`
-2. Verifica que `FLASK_API_URL` es correcto en `.env`
-3. Si usas ngrok, verifica que la URL es correcta y está actualizada
+1. Verifica que Flask está ejecutándose: `http://127.0.0.1:5000/api/health`
+2. La respuesta debe indicar `"db":"connected"`; si no, revisa `DATABASE_URL`, XAMPP/MySQL y `pip install -r requirements.txt`.
+3. Verifica que `FLASK_API_URL` es correcto en `.env`.
 
 ### Error: "No hay datos disponibles"
 
-1. Verifica que el ESP8266 está enviando datos
-2. Revisa los logs de Flask: `tail -f app.log`
-3. Prueba manualmente: `curl http://localhost:5000/api/dashboard`
+1. Verifica que el ESP32 muestra `HTTP 201` en el monitor serial.
+2. Revisa la consola donde ejecutaste `python app.py`; debe mostrar `Escaneo <id> guardado`.
+3. En phpMyAdmin, abre `wifi_scans` y confirma que se incrementó el número de filas.
+4. Si Flask muestra un error de conexión, confirma que XAMPP/MySQL está encendido y que `DATABASE_URL` apunta a la base correcta.
 
 ### Error: CORS
 
