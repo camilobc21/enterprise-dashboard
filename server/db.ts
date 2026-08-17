@@ -290,32 +290,59 @@ export async function updateNetworkDeviceTrust(ownerId: number, id: number, isTr
   return result[0] ?? null;
 }
 
+export function normalizeDetectedNetworkDevices(devices: Array<{ ipAddress: string; macAddress: string }>) {
+  const uniqueDevices = new Map<string, { ipAddress: string; macAddress: string }>();
+
+  for (const device of devices) {
+    const ipAddress = device.ipAddress.trim();
+    const macAddress = device.macAddress.trim().replace(/-/g, ":").toUpperCase();
+
+    if (!ipAddress || !macAddress) continue;
+    uniqueDevices.set(macAddress, { ipAddress, macAddress });
+  }
+
+  return Array.from(uniqueDevices.values());
+}
+
 export async function upsertDetectedNetworkDevices(ownerId: number, devices: Array<{ ipAddress: string; macAddress: string }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const now = new Date();
-  for (const device of devices) {
-    await db.insert(networkDevices).values({
-      ownerId,
-      displayName: `Dispositivo ${device.ipAddress}`,
-      ipAddress: device.ipAddress,
-      macAddress: device.macAddress,
-      status: "online",
-      source: "router_arp",
-      isTrusted: false,
-      lastSeen: now,
-    }).onDuplicateKeyUpdate({
-      set: {
+  const uniqueDevices = normalizeDetectedNetworkDevices(devices);
+
+  for (const device of uniqueDevices) {
+    const existingDevice = await db
+      .select({ id: networkDevices.id })
+      .from(networkDevices)
+      .where(and(eq(networkDevices.ownerId, ownerId), eq(networkDevices.macAddress, device.macAddress)))
+      .limit(1);
+
+    if (existingDevice[0]) {
+      await db
+        .update(networkDevices)
+        .set({
+          ipAddress: device.ipAddress,
+          status: "online",
+          source: "router_arp",
+          lastSeen: now,
+        })
+        .where(and(eq(networkDevices.id, existingDevice[0].id), eq(networkDevices.ownerId, ownerId)));
+    } else {
+      await db.insert(networkDevices).values({
+        ownerId,
+        displayName: `Dispositivo ${device.ipAddress}`,
         ipAddress: device.ipAddress,
+        macAddress: device.macAddress,
         status: "online",
         source: "router_arp",
+        isTrusted: false,
         lastSeen: now,
-      },
-    });
+      });
+    }
   }
 
-  return devices.length;
+  return uniqueDevices.length;
 }
 
 // AI Conversations
