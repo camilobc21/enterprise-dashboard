@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseArpOutput } from "./arpDiscovery";
+import { derivePrivate24Targets, parseArpOutput } from "./arpDiscovery";
 
 describe("ARP device discovery", () => {
   it("parses private Windows ARP entries and normalizes their MAC addresses", () => {
@@ -20,5 +20,18 @@ Interface: 192.168.1.10 --- 0x9
 `);
 
     expect(devices).toEqual([{ ipAddress: "10.0.0.5", macAddress: "01:23:45:67:89:AB" }]);
+  });
+
+  it("derives a bounded private /24 target list without probing the host computer itself", () => {
+    const targets = derivePrivate24Targets("192.168.1.8");
+
+    expect(targets).toHaveLength(253);
+    expect(targets).toContain("192.168.1.1");
+    expect(targets).toContain("192.168.1.254");
+    expect(targets).not.toContain("192.168.1.8");
+  });
+
+  it("refuses non-private ranges for active discovery", () => {
+    expect(() => derivePrivate24Targets("8.8.8.8")).toThrow("IPv4 privada");
   });
 });

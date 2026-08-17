@@ -118,3 +118,4 @@ Sistema completo de integración con API Flask:
 - [x] Ajustar SameSite de la cookie de sesión para que el navegador la acepte en localhost por HTTP
 - [x] Restaurar el archivo de firmware ESP32 y su guía de configuración en el repositorio para facilitar la descarga del usuario
 - [x] Corregir la consulta SQL de dispositivos detectados por ARP que falla al actualizar registros existentes
+- [x] Poblar la caché ARP mediante descubrimiento activo limitado a la red privada autorizada antes de listar dispositivos

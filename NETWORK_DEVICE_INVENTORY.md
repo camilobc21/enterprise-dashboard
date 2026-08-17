@@ -1,10 +1,10 @@
 # Inventario de dispositivos conectados
 
-La sección **Dispositivos conectados** muestra equipos observados exclusivamente en redes cuya administración esté autorizada. No genera dispositivos de demostración ni realiza exploraciones activas desde el navegador.
+La sección **Dispositivos conectados** muestra equipos observados exclusivamente en redes cuya administración esté autorizada. No genera dispositivos de demostración ni realiza exploraciones desde el navegador; el servidor local puede poblar su propia caché ARP mediante intentos ICMP limitados al segmento privado autorizado.
 
 ## Uso actual
 
-Un administrador puede abrir **Dispositivos conectados** y pulsar **Actualizar dispositivos**. El servidor lee la caché ARP local del computador que ejecuta el dashboard, conserva IP, MAC, estado y última detección, y actualiza la misma MAC sin crear duplicados.
+Un administrador puede abrir **Dispositivos conectados** y pulsar **Actualizar dispositivos**. El servidor local puede realizar intentos ICMP limitados a su segmento privado `/24`, lee después la caché ARP del computador donde se ejecuta el dashboard, conserva IP, MAC, estado y última detección, y actualiza la misma MAC sin crear duplicados.
 
 La vista protege parcialmente la privacidad al ocultar los bytes centrales de la MAC. Solo los administradores pueden registrar dispositivos o cambiar el estado de confianza; cualquier usuario autenticado puede consultar su propio inventario.
 

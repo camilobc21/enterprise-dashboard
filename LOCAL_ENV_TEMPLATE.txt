@@ -14,5 +14,12 @@ FLASK_API_URL=http://127.0.0.1:5000
 # Activa documentos locales. La carpeta se crea automáticamente y debe quedarse fuera de Git.
 LOCAL_STORAGE_DIR=./local-storage
 
-# Activa solo en una red privada que administras. Lee la caché ARP local; no realiza exploración activa.
+# Activa solo en una red privada que administras.
 LOCAL_NETWORK_DISCOVERY=false
+
+# Con true, realiza intentos ICMP limitados al segmento IPv4 privado /24 del PC para poblar la caché ARP.
+# Usa false para limitarte a las entradas ya existentes en la caché ARP.
+LOCAL_NETWORK_ACTIVE_DISCOVERY=true
+
+# Opcional: fuerza el segmento autorizado si el PC tiene varias redes privadas.
+# LOCAL_NETWORK_SUBNET=192.168.1.0/24

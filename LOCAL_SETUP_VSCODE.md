@@ -105,13 +105,14 @@ Si el servidor indica que usa otro puerto, por ejemplo `3001`, abre la URL LAN c
 
 ### Detección de dispositivos conectados
 
-Para habilitar el botón **Actualizar dispositivos**, agrega esta línea a tu archivo `.env` y reinicia `./run-dev.cmd`:
+Para habilitar el botón **Actualizar dispositivos**, agrega estas líneas a tu archivo `.env` y reinicia `./run-dev.cmd`:
 
 ```env
 LOCAL_NETWORK_DISCOVERY=true
+LOCAL_NETWORK_ACTIVE_DISCOVERY=true
 ```
 
-La función lee de forma pasiva la caché ARP del computador donde se ejecuta el dashboard. Por ello detecta equipos que ese computador ya ha visto en su red privada; puede no mostrar dispositivos aislados, apagados o conectados a otra subred. Úsala únicamente en una red que administras.
+El servidor primero realiza intentos ICMP limitados al segmento IPv4 privado `/24` del computador y luego lee su caché ARP. Esto permite detectar más dispositivos que una lectura pasiva, aunque equipos apagados, aislados en una red de invitados o que no respondan en la capa local pueden no aparecer. Úsala únicamente en una red privada que administras. Si el equipo tiene varias redes privadas, añade `LOCAL_NETWORK_SUBNET=192.168.1.0/24` con el segmento autorizado.
 
 ## 5. Activar análisis WiFi y ESP32
 
