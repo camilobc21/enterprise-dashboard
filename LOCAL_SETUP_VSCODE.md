@@ -91,6 +91,18 @@ Como otra alternativa, selecciona el perfil de terminal **Command Prompt** en Vi
 
 Abre [http://localhost:3000](http://localhost:3000). Crea la primera cuenta para ser administrador. Desde **Gestión de roles** puedes añadir la URL, el modelo y la clave de tu proveedor de IA compatible con OpenAI; la clave se cifra en la base de datos local.
 
+### Acceso desde otro teléfono, tableta o computador de tu red
+
+El servidor ahora escucha la red local y al iniciar muestra una línea como `LAN access available at http://192.168.1.50:3000/`. Asegúrate de que el otro dispositivo esté conectado a la **misma red Wi-Fi** y abre esa dirección exacta; no uses `localhost` en el segundo dispositivo.
+
+Si Windows bloquea el acceso, abre PowerShell **como administrador** y ejecuta esta regla limitada a la red privada local:
+
+```powershell
+New-NetFirewallRule -DisplayName "Enterprise Dashboard LAN 3000" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private -RemoteAddress LocalSubnet
+```
+
+Si el servidor indica que usa otro puerto, por ejemplo `3001`, abre la URL LAN con ese mismo puerto y ajusta la regla del firewall a ese número. No abras el puerto en perfiles públicos.
+
 ## 5. Activar análisis WiFi y ESP32
 
 El repositorio incluye la integración del dashboard, pero el archivo de la API Flask/firmware de ESP32 debe mantenerse junto a tu proyecto de dispositivo. Para completar este módulo, inicia tu servicio Flask existente en el puerto `5000` y deja esta variable en `.env`:
@@ -131,6 +143,7 @@ pnpm start
 | Error de conexión MySQL | Inicia MySQL en XAMPP, verifica el puerto `3306` y corrige usuario/contraseña en `DATABASE_URL`. |
 | El login muestra `Failed query` y menciona `passwordHash` o `loginMethod` | Detén el servidor, realiza una exportación de respaldo desde phpMyAdmin y ejecuta `pnpm.cmd auth:repair`. Reinicia con `.\run-dev.cmd`. |
 | Inicio sesión pero regreso a `/login` | Actualiza el repositorio, reinicia con `.\run-dev.cmd` y borra las cookies de `localhost` una vez. La versión actual usa una cookie `SameSite=Lax` compatible con HTTP local. |
+| Otro dispositivo no puede abrir el dashboard | Conéctalo a la misma Wi-Fi, usa la línea `LAN access available at ...` del servidor y permite el puerto solo en el perfil privado de Windows. |
 | No aparece el menú de administrador | Crea una base vacía y registra primero la cuenta administradora, o actualiza su rol desde MySQL. |
 | El chat muestra proveedor no configurado | Como administrador, abre **Gestión de roles** y registra tu proveedor compatible con OpenAI. |
 | WiFi sin datos | Inicia Flask, verifica `FLASK_API_URL` y usa la IP LAN del PC en el firmware ESP32. |

@@ -107,6 +107,8 @@ Sistema completo de integración con API Flask:
 - [x] Preparar una reparación local no destructiva para las columnas de autenticación de la tabla users
 - [x] Completar la reparación de users con la columna name y validación de restricciones de unicidad
 - [ ] Confirmar la ejecución de la reparación en MySQL local y validar el inicio de sesión
-- [ ] Eliminar las referencias de analítica administrada que generan advertencias locales de Vite
+- [x] Eliminar las referencias de analítica administrada que generan advertencias locales de Vite
 - [ ] Corregir el flujo de sesión y redirección local que impide acceder al dashboard tras iniciar sesión
+- [x] Configurar y documentar el acceso al dashboard desde otros dispositivos de la misma red local
+- [ ] Confirmar desde un segundo dispositivo que la dirección LAN abre el dashboard local
 - [x] Ajustar SameSite de la cookie de sesión para que el navegador la acepte en localhost por HTTP

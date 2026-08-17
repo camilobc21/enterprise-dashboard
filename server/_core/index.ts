@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { setupSocketIO } from "./socket";
+import { getLanUrls } from "./lan";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -69,8 +70,11 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
+  server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${port}/`);
+    for (const lanUrl of getLanUrls(port)) {
+      console.log(`LAN access available at ${lanUrl}/`);
+    }
   });
 }
 
