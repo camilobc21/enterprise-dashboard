@@ -76,7 +76,7 @@ export const aiRouter = router({
     .mutation(async ({ ctx, input }) => {
       const config = await upsertAIProviderConfig({
         providerName: input.providerName,
-        baseUrl: normalizeProviderBaseUrl(input.baseUrl),
+        baseUrl: normalizeProviderBaseUrl(input.baseUrl, input.providerName),
         model: input.model,
         encryptedApiKey: encryptProviderKey(input.apiKey),
         updatedBy: ctx.user.id,

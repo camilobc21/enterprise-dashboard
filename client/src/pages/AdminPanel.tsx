@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { AI_PROVIDER_PROFILES, getAIProviderProfile } from "@shared/aiProviders";
 import { Crown, KeyRound, PlugZap, RefreshCw, ShieldCheck, UserCog, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -38,7 +39,8 @@ export default function AdminPanel() {
   const updateRole = trpc.users.updateRole.useMutation();
   const saveProviderConfig = trpc.ai.saveProviderConfig.useMutation();
   const testProviderConnection = trpc.ai.testProviderConnection.useMutation();
-  const [providerName, setProviderName] = useState("OpenAI");
+  const [providerName, setProviderName] = useState("openai");
+  const [customProviderName, setCustomProviderName] = useState("");
   const [providerBaseUrl, setProviderBaseUrl] = useState("https://api.openai.com/v1");
   const [providerModel, setProviderModel] = useState("gpt-4o-mini");
   const [providerApiKey, setProviderApiKey] = useState("");
@@ -63,10 +65,23 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (!providerStatusQuery.data?.configured) return;
-    setProviderName(providerStatusQuery.data.providerName);
+    const profile = getAIProviderProfile(providerStatusQuery.data.providerName);
+    setProviderName(profile.id);
+    if (profile.id === "custom" && !["custom", "OpenAI Compatible"].includes(providerStatusQuery.data.providerName)) {
+      setCustomProviderName(providerStatusQuery.data.providerName);
+    }
     setProviderBaseUrl(providerStatusQuery.data.baseUrl);
     setProviderModel(providerStatusQuery.data.model);
   }, [providerStatusQuery.data]);
+
+  const selectedProvider = getAIProviderProfile(providerName);
+
+  function selectProvider(nextProviderId: string) {
+    const nextProvider = getAIProviderProfile(nextProviderId);
+    setProviderName(nextProvider.id);
+    if (nextProvider.defaultBaseUrl) setProviderBaseUrl(nextProvider.defaultBaseUrl);
+    if (nextProvider.defaultModel) setProviderModel(nextProvider.defaultModel);
+  }
 
   async function saveRole(userId: number, currentRole: Role) {
     const nextRole = draftRoles[userId] ?? currentRole;
@@ -96,7 +111,7 @@ export default function AdminPanel() {
 
     try {
       await saveProviderConfig.mutateAsync({
-        providerName,
+        providerName: providerName === "custom" ? (customProviderName.trim() || "OpenAI Compatible") : providerName,
         baseUrl: providerBaseUrl,
         model: providerModel,
         apiKey: providerApiKey,
@@ -169,7 +184,7 @@ export default function AdminPanel() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-blue-600" /> IA con tu propia clave</CardTitle>
             <CardDescription>
-              Configura un proveedor compatible con la API de chat de OpenAI. La clave se cifra antes de guardarse y nunca vuelve a mostrarse.
+              Elige un proveedor conocido o configura un endpoint personalizado. OpenAI, Anthropic y Google Gemini usan sus formatos nativos; otros servicios usan el estándar compatible con OpenAI. La clave se cifra antes de guardarse y nunca vuelve a mostrarse.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -182,21 +197,26 @@ export default function AdminPanel() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="provider-name">Proveedor</Label>
-                <Input id="provider-name" value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="OpenAI" />
+                <Select value={providerName} onValueChange={selectProvider}>
+                  <SelectTrigger id="provider-name"><SelectValue placeholder="Elige un proveedor" /></SelectTrigger>
+                  <SelectContent>{AI_PROVIDER_PROFILES.map((profile) => <SelectItem key={profile.id} value={profile.id}>{profile.label}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="provider-model">Modelo</Label>
                 <Input id="provider-model" value={providerModel} onChange={(event) => setProviderModel(event.target.value)} placeholder="gpt-4o-mini" />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="provider-url">URL base compatible con OpenAI</Label>
-                <Input id="provider-url" type="url" value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.openai.com/v1" />
+                <Label htmlFor="provider-url">URL base del proveedor</Label>
+                <Input id="provider-url" type="url" value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder={selectedProvider.defaultBaseUrl || "https://api.tu-proveedor.com/v1"} />
               </div>
+              {providerName === "custom" ? <div className="space-y-2 md:col-span-2"><Label htmlFor="custom-provider-name">Nombre del proveedor personalizado</Label><Input id="custom-provider-name" value={customProviderName} onChange={(event) => setCustomProviderName(event.target.value)} placeholder="LM Studio, vLLM, Mistral u otro" /></div> : null}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="provider-key">Clave API</Label>
                 <Input id="provider-key" type="password" autoComplete="off" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerStatusQuery.data?.configured ? "Introduce una nueva clave solo para reemplazar la actual" : "Pega tu clave API"} />
               </div>
             </div>
+            <p className="rounded-lg bg-slate-50 p-3 text-sm text-muted-foreground dark:bg-slate-900/40"><strong className="text-foreground">{selectedProvider.label}:</strong> {selectedProvider.description}</p>
             <div className="flex flex-wrap gap-3">
               <Button onClick={saveAIProvider} disabled={saveProviderConfig.isPending}>
                 <KeyRound className="mr-2 h-4 w-4" />{saveProviderConfig.isPending ? "Guardando…" : "Guardar clave y configuración"}

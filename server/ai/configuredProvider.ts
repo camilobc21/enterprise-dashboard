@@ -1,11 +1,15 @@
 import { getAIProviderConfig } from "../db";
-import { requestOpenAICompatibleChat, type AIChatMessage } from "./openaiCompatible";
+import { getAIProviderProfile } from "@shared/aiProviders";
+import { type AIChatMessage } from "./openaiCompatible";
+import { requestConfiguredProviderChat } from "./multiProvider";
 import { decryptProviderKey } from "./providerSecrets";
 
-export function normalizeProviderBaseUrl(baseUrl: string) {
+export function normalizeProviderBaseUrl(baseUrl: string, providerName = "custom") {
   const parsed = new URL(baseUrl.trim());
-  if (parsed.protocol !== "https:") {
-    throw new Error("La URL del proveedor debe usar HTTPS");
+  const profile = getAIProviderProfile(providerName);
+  const localHostname = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "::1";
+  if (parsed.protocol !== "https:" && !(profile.allowsHttpLocal && localHostname && parsed.protocol === "http:")) {
+    throw new Error("La URL del proveedor debe usar HTTPS; HTTP solo se permite para modelos locales en localhost.");
   }
 
   return parsed.toString().replace(/\/$/, "");
@@ -30,8 +34,9 @@ export async function invokeConfiguredAIChat(messages: AIChatMessage[]) {
     throw new Error("La IA no está configurada. Un administrador debe añadir la clave API en Gestión de roles.");
   }
 
-  return requestOpenAICompatibleChat(
+  return requestConfiguredProviderChat(
     {
+      providerName: config.providerName,
       baseUrl: config.baseUrl,
       model: config.model,
       apiKey: decryptProviderKey(config.encryptedApiKey),
