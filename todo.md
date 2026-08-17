@@ -113,4 +113,5 @@ Sistema completo de integración con API Flask:
 - [ ] Confirmar desde un segundo dispositivo que la dirección LAN abre el dashboard local
 - [x] Añadir un apartado de dispositivos conectados con inventario, estado y última detección
 - [x] Sustituir el registro manual por detección automática de dispositivos desde la caché ARP local autorizada
+- [x] Preparar y documentar el firmware ESP32 para escanear WiFi y enviar datos al servicio Flask local
 - [x] Ajustar SameSite de la cookie de sesión para que el navegador la acepte en localhost por HTTP
