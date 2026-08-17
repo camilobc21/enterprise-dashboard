@@ -115,3 +115,4 @@ Sistema completo de integración con API Flask:
 - [x] Sustituir el registro manual por detección automática de dispositivos desde la caché ARP local autorizada
 - [x] Preparar y documentar el firmware ESP32 para escanear WiFi y enviar datos al servicio Flask local
 - [x] Ajustar SameSite de la cookie de sesión para que el navegador la acepte en localhost por HTTP
+- [x] Restaurar el archivo de firmware ESP32 y su guía de configuración en el repositorio para facilitar la descarga del usuario
