@@ -114,6 +114,14 @@ LOCAL_NETWORK_ACTIVE_DISCOVERY=true
 
 El servidor primero realiza intentos ICMP limitados al segmento IPv4 privado `/24` del computador y luego lee su caché ARP. Esto permite detectar más dispositivos que una lectura pasiva, aunque equipos apagados, aislados en una red de invitados o que no respondan en la capa local pueden no aparecer. Úsala únicamente en una red privada que administras. Si el equipo tiene varias redes privadas, añade `LOCAL_NETWORK_SUBNET=192.168.1.0/24` con el segmento autorizado.
 
+Si phpMyAdmin no muestra la tabla `network_devices`, actualiza el repositorio y ejecuta una vez, desde la raíz del proyecto:
+
+```cmd
+pnpm.cmd network:repair
+```
+
+Este comando crea únicamente la tabla y los índices faltantes; no borra usuarios, escaneos ni registros existentes.
+
 ## 5. Activar análisis WiFi y ESP32
 
 El repositorio incluye la integración del dashboard, pero el archivo de la API Flask/firmware de ESP32 debe mantenerse junto a tu proyecto de dispositivo. Para completar este módulo, inicia tu servicio Flask existente en el puerto `5000` y deja esta variable en `.env`:

@@ -122,3 +122,5 @@ Sistema completo de integración con API Flask:
 - [ ] Diagnosticar y corregir la falta de registros reales tras la detección de dispositivos en Windows/XAMPP
 - [x] Mostrar el inventario de dispositivos compartido del proyecto a todos los usuarios autenticados
 - [x] Guardar los escaneos del ESP32 recibidos por Flask en las tablas WiFi de MySQL/XAMPP
+- [ ] Ejecutar pnpm.cmd network:repair en Windows/XAMPP y confirmar que existe la tabla network_devices
+- [ ] Validar una detección ARP real que inserte filas en network_devices y se muestre para administrador y usuario
