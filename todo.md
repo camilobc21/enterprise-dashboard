@@ -106,7 +106,8 @@ Sistema completo de integración con API Flask:
 - [x] Añadir un lanzador Windows que evite el bloqueo de pnpm.ps1 en PowerShell
 - [x] Preparar una reparación local no destructiva para las columnas de autenticación de la tabla users
 - [x] Completar la reparación de users con la columna name y validación de restricciones de unicidad
-- [ ] Confirmar la ejecución de la reparación en MySQL local y validar el inicio de sesión
+- [x] Confirmar la ejecución de la reparación en MySQL local y validar el inicio de sesión
+- [x] Crear y verificar el servicio Flask local (app.py) para recibir los escaneos del ESP32 y alimentar el dashboard
 - [x] Eliminar las referencias de analítica administrada que generan advertencias locales de Vite
 - [ ] Corregir el flujo de sesión y redirección local que impide acceder al dashboard tras iniciar sesión
 - [x] Configurar y documentar el acceso al dashboard desde otros dispositivos de la misma red local
