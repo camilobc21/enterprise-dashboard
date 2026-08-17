@@ -13,3 +13,6 @@ FLASK_API_URL=http://127.0.0.1:5000
 
 # Activa documentos locales. La carpeta se crea automáticamente y debe quedarse fuera de Git.
 LOCAL_STORAGE_DIR=./local-storage
+
+# Activa solo en una red privada que administras. Lee la caché ARP local; no realiza exploración activa.
+LOCAL_NETWORK_DISCOVERY=false

@@ -273,32 +273,6 @@ export async function getNetworkDevices(ownerId: number) {
     .orderBy(desc(networkDevices.lastSeen));
 }
 
-export async function upsertNetworkDevice(data: InsertNetworkDevice) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const now = new Date();
-  await db.insert(networkDevices).values({ ...data, lastSeen: now }).onDuplicateKeyUpdate({
-    set: {
-      displayName: data.displayName,
-      ipAddress: data.ipAddress,
-      vendor: data.vendor,
-      deviceType: data.deviceType,
-      status: data.status,
-      isTrusted: data.isTrusted,
-      source: data.source,
-      lastSeen: now,
-    },
-  });
-
-  const result = await db
-    .select()
-    .from(networkDevices)
-    .where(and(eq(networkDevices.ownerId, data.ownerId), eq(networkDevices.macAddress, data.macAddress)))
-    .limit(1);
-  return result[0] ?? null;
-}
-
 export async function updateNetworkDeviceTrust(ownerId: number, id: number, isTrusted: boolean) {
   const db = await getDb();
   if (!db) return null;
@@ -314,6 +288,34 @@ export async function updateNetworkDeviceTrust(ownerId: number, id: number, isTr
     .where(and(eq(networkDevices.id, id), eq(networkDevices.ownerId, ownerId)))
     .limit(1);
   return result[0] ?? null;
+}
+
+export async function upsertDetectedNetworkDevices(ownerId: number, devices: Array<{ ipAddress: string; macAddress: string }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const now = new Date();
+  for (const device of devices) {
+    await db.insert(networkDevices).values({
+      ownerId,
+      displayName: `Dispositivo ${device.ipAddress}`,
+      ipAddress: device.ipAddress,
+      macAddress: device.macAddress,
+      status: "online",
+      source: "router_arp",
+      isTrusted: false,
+      lastSeen: now,
+    }).onDuplicateKeyUpdate({
+      set: {
+        ipAddress: device.ipAddress,
+        status: "online",
+        source: "router_arp",
+        lastSeen: now,
+      },
+    });
+  }
+
+  return devices.length;
 }
 
 // AI Conversations

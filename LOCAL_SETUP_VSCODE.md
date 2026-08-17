@@ -103,6 +103,16 @@ New-NetFirewallRule -DisplayName "Enterprise Dashboard LAN 3000" -Direction Inbo
 
 Si el servidor indica que usa otro puerto, por ejemplo `3001`, abre la URL LAN con ese mismo puerto y ajusta la regla del firewall a ese número. No abras el puerto en perfiles públicos.
 
+### Detección de dispositivos conectados
+
+Para habilitar el botón **Actualizar dispositivos**, agrega esta línea a tu archivo `.env` y reinicia `./run-dev.cmd`:
+
+```env
+LOCAL_NETWORK_DISCOVERY=true
+```
+
+La función lee de forma pasiva la caché ARP del computador donde se ejecuta el dashboard. Por ello detecta equipos que ese computador ya ha visto en su red privada; puede no mostrar dispositivos aislados, apagados o conectados a otra subred. Úsala únicamente en una red que administras.
+
 ## 5. Activar análisis WiFi y ESP32
 
 El repositorio incluye la integración del dashboard, pero el archivo de la API Flask/firmware de ESP32 debe mantenerse junto a tu proyecto de dispositivo. Para completar este módulo, inicia tu servicio Flask existente en el puerto `5000` y deja esta variable en `.env`:
@@ -144,6 +154,7 @@ pnpm start
 | El login muestra `Failed query` y menciona `passwordHash` o `loginMethod` | Detén el servidor, realiza una exportación de respaldo desde phpMyAdmin y ejecuta `pnpm.cmd auth:repair`. Reinicia con `.\run-dev.cmd`. |
 | Inicio sesión pero regreso a `/login` | Actualiza el repositorio, reinicia con `.\run-dev.cmd` y borra las cookies de `localhost` una vez. La versión actual usa una cookie `SameSite=Lax` compatible con HTTP local. |
 | Otro dispositivo no puede abrir el dashboard | Conéctalo a la misma Wi-Fi, usa la línea `LAN access available at ...` del servidor y permite el puerto solo en el perfil privado de Windows. |
+| Actualizar dispositivos indica que está desactivado | Agrega `LOCAL_NETWORK_DISCOVERY=true` a `.env`, reinicia `./run-dev.cmd` y vuelve a pulsar el botón. |
 | No aparece el menú de administrador | Crea una base vacía y registra primero la cuenta administradora, o actualiza su rol desde MySQL. |
 | El chat muestra proveedor no configurado | Como administrador, abre **Gestión de roles** y registra tu proveedor compatible con OpenAI. |
 | WiFi sin datos | Inicia Flask, verifica `FLASK_API_URL` y usa la IP LAN del PC en el firmware ESP32. |
