@@ -119,3 +119,5 @@ Sistema completo de integración con API Flask:
 - [x] Restaurar el archivo de firmware ESP32 y su guía de configuración en el repositorio para facilitar la descarga del usuario
 - [x] Corregir la consulta SQL de dispositivos detectados por ARP que falla al actualizar registros existentes
 - [x] Poblar la caché ARP mediante descubrimiento activo limitado a la red privada autorizada antes de listar dispositivos
+- [ ] Diagnosticar y corregir la falta de registros reales tras la detección de dispositivos en Windows/XAMPP
+- [x] Mostrar el inventario de dispositivos compartido del proyecto a todos los usuarios autenticados

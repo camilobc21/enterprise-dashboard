@@ -263,29 +263,28 @@ export async function deleteDocument(id: number) {
 }
 
 // Connected network device inventory
-export async function getNetworkDevices(ownerId: number) {
+export async function getNetworkDevices() {
   const db = await getDb();
   if (!db) return [];
   return db
     .select()
     .from(networkDevices)
-    .where(eq(networkDevices.ownerId, ownerId))
     .orderBy(desc(networkDevices.lastSeen));
 }
 
-export async function updateNetworkDeviceTrust(ownerId: number, id: number, isTrusted: boolean) {
+export async function updateNetworkDeviceTrust(id: number, isTrusted: boolean) {
   const db = await getDb();
   if (!db) return null;
 
   await db
     .update(networkDevices)
     .set({ isTrusted })
-    .where(and(eq(networkDevices.id, id), eq(networkDevices.ownerId, ownerId)));
+    .where(eq(networkDevices.id, id));
 
   const result = await db
     .select()
     .from(networkDevices)
-    .where(and(eq(networkDevices.id, id), eq(networkDevices.ownerId, ownerId)))
+    .where(eq(networkDevices.id, id))
     .limit(1);
   return result[0] ?? null;
 }

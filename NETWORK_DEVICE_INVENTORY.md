@@ -6,7 +6,7 @@ La sección **Dispositivos conectados** muestra equipos observados exclusivament
 
 Un administrador puede abrir **Dispositivos conectados** y pulsar **Actualizar dispositivos**. El servidor local puede realizar intentos ICMP limitados a su segmento privado `/24`, lee después la caché ARP del computador donde se ejecuta el dashboard, conserva IP, MAC, estado y última detección, y actualiza la misma MAC sin crear duplicados.
 
-La vista protege parcialmente la privacidad al ocultar los bytes centrales de la MAC. Solo los administradores pueden registrar dispositivos o cambiar el estado de confianza; cualquier usuario autenticado puede consultar su propio inventario.
+La vista protege parcialmente la privacidad al ocultar los bytes centrales de la MAC. El inventario se comparte entre todos los usuarios autenticados del proyecto; solo los administradores pueden actualizar la detección local o cambiar el estado de confianza.
 
 ## Fuentes de datos compatibles
 

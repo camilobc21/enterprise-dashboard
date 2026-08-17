@@ -4,10 +4,10 @@ import { collectLocalArpDevices } from "../network/arpDiscovery";
 import { z } from "zod";
 
 export const networkDevicesRouter = router({
-  list: protectedProcedure.query(({ ctx }) => db.getNetworkDevices(ctx.user.id)),
+  list: protectedProcedure.query(() => db.getNetworkDevices()),
 
-  summary: protectedProcedure.query(async ({ ctx }) => {
-    const devices = await db.getNetworkDevices(ctx.user.id);
+  summary: protectedProcedure.query(async () => {
+    const devices = await db.getNetworkDevices();
     return {
       total: devices.length,
       online: devices.filter((device) => device.status === "online").length,
@@ -23,5 +23,5 @@ export const networkDevicesRouter = router({
 
   setTrusted: adminProcedure
     .input(z.object({ id: z.number().int().positive(), isTrusted: z.boolean() }))
-    .mutation(({ ctx, input }) => db.updateNetworkDeviceTrust(ctx.user.id, input.id, input.isTrusted)),
+    .mutation(({ input }) => db.updateNetworkDeviceTrust(input.id, input.isTrusted)),
 });
