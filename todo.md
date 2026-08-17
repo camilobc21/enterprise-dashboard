@@ -125,3 +125,4 @@ Sistema completo de integración con API Flask:
 - [ ] Ejecutar pnpm.cmd network:repair en Windows/XAMPP y confirmar que existe la tabla network_devices
 - [ ] Validar una detección ARP real que inserte filas en network_devices y se muestre para administrador y usuario
 - [x] Ampliar la configuración de IA para elegir proveedores predefinidos o una API personalizada
+- [ ] Crear ai_provider_configs en MySQL/XAMPP para guardar la configuración cifrada de IA

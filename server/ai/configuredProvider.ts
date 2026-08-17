@@ -12,6 +12,10 @@ export function normalizeProviderBaseUrl(baseUrl: string, providerName = "custom
     throw new Error("La URL del proveedor debe usar HTTPS; HTTP solo se permite para modelos locales en localhost.");
   }
 
+  if (profile.id === "groq" && parsed.hostname === "api.groq.com" && (parsed.pathname === "" || parsed.pathname === "/")) {
+    parsed.pathname = "/openai/v1";
+  }
+
   return parsed.toString().replace(/\/$/, "");
 }
 

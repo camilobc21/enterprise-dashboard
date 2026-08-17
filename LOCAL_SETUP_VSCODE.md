@@ -122,6 +122,16 @@ pnpm.cmd network:repair
 
 Este comando crea únicamente la tabla y los índices faltantes; no borra usuarios, escaneos ni registros existentes.
 
+### Configuración de proveedores de IA
+
+Si al guardar una clave de IA aparece un error que menciona `ai_provider_configs`, crea la tabla local faltante con:
+
+```cmd
+pnpm.cmd ai:repair
+```
+
+El comando solo crea la tabla de configuración cifrada y sus índices. Después reinicia `pnpm dev`, vuelve a **Gestión de roles** y guarda el proveedor elegido. Para Groq, la URL base correcta es `https://api.groq.com/openai/v1`; el dashboard la completa automáticamente cuando eliges el perfil Groq.
+
 ## 5. Activar análisis WiFi y ESP32
 
 El repositorio incluye la integración del dashboard, pero el archivo de la API Flask/firmware de ESP32 debe mantenerse junto a tu proyecto de dispositivo. Para completar este módulo, inicia tu servicio Flask existente en el puerto `5000` y deja esta variable en `.env`:
