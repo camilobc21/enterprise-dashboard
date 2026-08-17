@@ -126,3 +126,5 @@ Sistema completo de integración con API Flask:
 - [ ] Validar una detección ARP real que inserte filas en network_devices y se muestre para administrador y usuario
 - [x] Ampliar la configuración de IA para elegir proveedores predefinidos o una API personalizada
 - [ ] Crear ai_provider_configs en MySQL/XAMPP para guardar la configuración cifrada de IA
+- [ ] Diagnosticar y corregir el error 404 del chat al invocar el proveedor de IA configurado
+- [ ] Diagnosticar y corregir el error del chat al invocar el proveedor de IA configurado

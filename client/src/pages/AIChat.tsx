@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { getAIChatErrorMessage } from "@/lib/aiErrors";
 import { Send, FileDown, BarChart3, AlertCircle, Lightbulb, Zap } from "lucide-react";
 import { Streamdown } from "streamdown";
 
@@ -116,7 +117,7 @@ Siempre menciona las métricas específicas del sistema actual.`,
       setMessages((prev) => [...prev, { role: "assistant", content: response.assistantMessage }]);
     } catch (error) {
       console.error("Error enviando mensaje:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Error al procesar tu mensaje. Intenta de nuevo." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: getAIChatErrorMessage(error) }]);
     } finally {
       setIsLoading(false);
     }
