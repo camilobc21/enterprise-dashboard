@@ -1,5 +1,5 @@
 import { getAIProviderConfig } from "../db";
-import { getAIProviderProfile } from "@shared/aiProviders";
+import { getAIProviderProfile, resolveAIProviderModel } from "@shared/aiProviders";
 import { type AIChatMessage } from "./openaiCompatible";
 import { requestConfiguredProviderChat } from "./multiProvider";
 import { decryptProviderKey } from "./providerSecrets";
@@ -27,7 +27,7 @@ export async function getConfiguredProviderStatus() {
     configured: true as const,
     providerName: config.providerName,
     baseUrl: config.baseUrl,
-    model: config.model,
+    model: resolveAIProviderModel(config.providerName, config.model),
     updatedAt: config.updatedAt,
   };
 }
@@ -42,7 +42,7 @@ export async function invokeConfiguredAIChat(messages: AIChatMessage[]) {
     {
       providerName: config.providerName,
       baseUrl: config.baseUrl,
-      model: config.model,
+      model: resolveAIProviderModel(config.providerName, config.model),
       apiKey: decryptProviderKey(config.encryptedApiKey),
     },
     messages

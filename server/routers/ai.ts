@@ -3,6 +3,7 @@ import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { activateAIProviderConfig, createAIMessage, createAIConversation, deleteAIProviderConfig, getAIProviderConfigByKey, getAIConversationById, getConversationMessages, getUserAIConversations, listAIProviderConfigs, updateAIConversation, upsertAIProviderConfig } from "../db";
 import { getConfiguredProviderStatus, invokeConfiguredAIChat, normalizeProviderBaseUrl } from "../ai/configuredProvider";
 import { encryptProviderKey } from "../ai/providerSecrets";
+import { resolveAIProviderModel } from "@shared/aiProviders";
 import axios from "axios";
 
 const FLASK_API_URL = process.env.FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
@@ -66,7 +67,10 @@ ${historico?.map((h: any) => `- Escaneo ${h.id}: ${h.total_redes} redes, Saturac
 export const aiRouter = router({
   getProviderStatus: protectedProcedure.query(() => getConfiguredProviderStatus()),
 
-  listProviderConfigs: adminProcedure.query(() => listAIProviderConfigs()),
+  listProviderConfigs: adminProcedure.query(async () => {
+    const configs = await listAIProviderConfigs();
+    return configs.map((config) => ({ ...config, model: resolveAIProviderModel(config.providerName, config.model) }));
+  }),
 
   saveProviderConfig: adminProcedure
     .input(z.object({
