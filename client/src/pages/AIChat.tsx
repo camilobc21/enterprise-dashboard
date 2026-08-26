@@ -128,24 +128,18 @@ Siempre menciona las métricas específicas del sistema actual.`,
 
     try {
       const reportData = await generateReport.mutateAsync({
-        title: "Análisis WiFi - Reporte Generado",
+        title: "Observaciones WiFi - Reporte Generado",
         data: {
-          saturacion: wifiData.saturacion_general || 0,
-          ocupacion: wifiData.ocupacion_espectral || 0,
-          perdida: wifiData.perdida_paquetes || 0,
+          escaneo: {
+            total_redes_observadas: wifiData.total_redes ?? null,
+            timestamp: wifiData.timestamp ?? null,
+          },
           canales: (getDashboardQuery.data?.canales || []).slice(0, 5).map((canal: any) => ({
             canal: canal.canal,
-            saturacion: canal.saturacion || 0,
-            interferencia: canal.interferencia_adyacente || 0,
-            riesgo: canal.anomalia ? "Alto" : "Bajo",
+            redes_observadas: canal.cantidad_redes ?? null,
           })),
-          recomendaciones: [
-            "Optimizar ubicación del router",
-            "Cambiar a canal menos congestionado",
-            "Actualizar firmware del dispositivo",
-            "Reducir interferencia de dispositivos 2.4GHz",
-          ],
-          timestamp: new Date().toISOString(),
+          limitaciones: "El ESP32 reporta redes visibles, canal, RSSI, BSSID, SSID y cifrado anunciado. No mide interferencia, ocupación espectral, pérdida de paquetes ni predicciones.",
+          generado_en_utc: new Date().toISOString(),
         },
       });
 

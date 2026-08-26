@@ -15,6 +15,7 @@ Crear archivo `.env` en la raíz del proyecto:
 ```env
 FLASK_API_URL=http://localhost:5000
 DATABASE_URL=mysql://root:@127.0.0.1:3306/enterprise_dashboard
+ESP32_SCAN_TOKEN=REEMPLAZA_CON_UN_TOKEN_LOCAL_DE_32_CARACTERES_O_MAS
 ```
 
 O si usas ngrok para desarrollo:
@@ -123,6 +124,8 @@ Antes de encender el ESP32, comprueba que la respuesta contiene `"db":"connected
 curl http://127.0.0.1:5000/api/health
 ```
 
+La respuesta también debe incluir `"scan_auth":"configured"`. Genera un token local largo, guarda el mismo valor en `ESP32_SCAN_TOKEN` del archivo `.env` y en la constante `ESP32_SCAN_TOKEN` del firmware. No subas el token a Git ni lo envíes por capturas.
+
 ### Paso 3: Configurar Dashboard
 
 En la dashboard, asegúrate de que `FLASK_API_URL` está configurado correctamente en `.env`.
@@ -140,7 +143,7 @@ El ESP32 enviará datos automáticamente cada 30 segundos a:
 POST http://IP_DEL_PC:5000/api/scan
 ```
 
-Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Debe aparecer una fila nueva por cada escaneo recibido y una observación por red en `wifi_networks`. La densidad observada por canal se guarda en `wifi_channels`.
+Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Debe aparecer una fila nueva por cada escaneo recibido y una observación por red en `wifi_networks`. El dashboard cuenta las redes persistidas por canal al consultarlas; no guarda una métrica sintética de densidad, ocupación o interferencia.
 
 ## 📡 Formato de Datos
 
@@ -173,7 +176,7 @@ Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Deb
     "dispositivo": "ESP32-WiFi-Scanner",
     "total_redes": 12,
     "canal_optimo": 6,
-    "saturacion_general": 25.0,
+    "saturacion_general": null,
     "ocupacion_espectral": null,
     "perdida_paquetes": null,
     "tendencia_ia": null,
@@ -192,12 +195,12 @@ Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Deb
     {
       "canal": 1,
       "cantidad_redes": 3,
-      "saturacion": 23.1,
+      "saturacion": null,
       "ocupacion_espectral": null,
       "interferencia_adyacente": null,
       "perdida_paquetes": null,
       "riesgo_anomalia": null,
-      "anomalia": 0
+      "anomalia": null
     }
   ],
   "prediccion": null,

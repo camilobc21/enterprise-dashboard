@@ -38,10 +38,14 @@ if (!databaseUrl) {
       console.log("WiFi observation schema is already present.");
     }
 
+    await connection.query("ALTER TABLE `wifi_scans` MODIFY COLUMN `saturacionGeneral` decimal(5,2) NULL");
     await connection.query("ALTER TABLE `wifi_scans` MODIFY COLUMN `ocupacionEspectral` decimal(5,2) NULL");
     await connection.query("ALTER TABLE `wifi_scans` MODIFY COLUMN `perdidaPaquetes` decimal(5,2) NULL");
+    await connection.query("ALTER TABLE `wifi_channels` MODIFY COLUMN `saturacion` decimal(5,2) NULL");
     await connection.query("ALTER TABLE `wifi_channels` MODIFY COLUMN `ocupacionEspectral` decimal(5,2) NULL");
-    console.log("Calibrated optional WiFi metrics so unmeasured values remain N/D.");
+    await connection.query("UPDATE `wifi_scans` SET `saturacionGeneral` = NULL, `ocupacionEspectral` = NULL, `perdidaPaquetes` = NULL, `tendenciaIA` = NULL, `canalOptimo` = NULL");
+    await connection.query("UPDATE `wifi_channels` SET `saturacion` = NULL, `ocupacionEspectral` = NULL, `interferencia` = NULL, `perdidaPaquetes` = NULL, `riesgoAnomalia` = NULL");
+    console.log("Removed untraceable derived WiFi metric values so unavailable measurements remain N/D. Existing alert and prediction history is retained but no longer shown as passive-ESP32 output.");
   } finally {
     connection.destroy();
   }

@@ -11,5 +11,7 @@ describe("dashboard real-data presentation", () => {
     expect(content).toContain("trpc.ai.getConversations.useQuery()");
     expect(content).not.toContain("mockData");
     expect(content).not.toContain("mockPieData");
+    expect(content).not.toContain('dataKey="densidad"');
+    expect(content).not.toContain("Índice de densidad");
   });
 });

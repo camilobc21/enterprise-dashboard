@@ -9,5 +9,7 @@ describe("WiFi observation schema repair", () => {
     expect(content).toContain("wifi_networks_scanId_wifi_scans_id_fk");
     expect(content).toContain("MODIFY COLUMN `ocupacionEspectral` decimal(5,2) NULL");
     expect(content).toContain("MODIFY COLUMN `perdidaPaquetes` decimal(5,2) NULL");
+    expect(content).toContain("MODIFY COLUMN `saturacionGeneral` decimal(5,2) NULL");
+    expect(content).toContain("UPDATE `wifi_channels` SET `saturacion` = NULL");
   });
 });

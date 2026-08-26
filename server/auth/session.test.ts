@@ -30,8 +30,9 @@ describe("local JWT sessions", () => {
 
   it("rejects a tampered token", async () => {
     const token = await createLocalSession({ userId: 42, email: "user@example.com" });
-    const finalCharacter = token.endsWith("a") ? "b" : "a";
-    const tamperedToken = `${token.slice(0, -1)}${finalCharacter}`;
+    const [header, payload, signature] = token.split(".");
+    const alteredFirstCharacter = signature.startsWith("a") ? "b" : "a";
+    const tamperedToken = `${header}.${payload}.${alteredFirstCharacter}${signature.slice(1)}`;
 
     await expect(getLocalSessionUserId(requestWithToken(tamperedToken))).resolves.toBeNull();
   });

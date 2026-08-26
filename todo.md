@@ -132,3 +132,14 @@ Sistema completo de integración con API Flask:
 - [ ] Actualizar el modelo sugerido de Groq y validar que el proveedor configurado pueda responder en el chat
 - [ ] Calibrar métricas, historial y análisis para que usen exclusivamente registros reales de ESP32, Flask y MySQL/XAMPP
 - [x] Reemplazar los gráficos y tarjetas simuladas de la portada por datos reales de escaneos, documentos y conversaciones
+- [ ] Auditar y eliminar valores simulados, demostrativos o inferencias no etiquetadas de todas las pantallas y APIs
+- [x] Documentar y aplicar controles verificables basados en estándares internacionales de WiFi, seguridad, privacidad y calidad de software
+- [x] Eliminar o reemplazar con estado neutro las estadísticas fijas y CTA demostrativo de la landing pública
+- [ ] Añadir una auditoría automatizada de rutas públicas y APIs expuestas contra valores mock o demo
+- [x] Proteger la recepción de escaneos ESP32 con un token local configurable y documentar su uso seguro
+- [x] Limitar la exposición de BSSID en la interfaz y el contexto IA según el principio de minimización de datos
+- [x] Eliminar del dashboard principal cualquier gráfica que use saturación no medida y cubrir el estado N/D con pruebas
+- [x] Retirar el archivo de demostración ComponentShowcase y ampliar pruebas de respuestas API contra datos mock o no medidos
+- [ ] Automatizar el recorrido completo de pantallas productivas y contratos tRPC contra datos mock, demo o métricas no medidas
+- [x] Añadir pruebas de contrato ejecutables para routers tRPC WiFi, IA e inventario de red
+- [ ] Extender los contratos ejecutables a los routers tRPC restantes expuestos al cliente

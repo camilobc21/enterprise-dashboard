@@ -64,7 +64,7 @@ export default function NetworkDevices() {
 
   if (loading) return <DashboardLayout><div className="space-y-5"><Skeleton className="h-28 w-full" /><Skeleton className="h-72 w-full" /></div></DashboardLayout>;
 
-  const summary = summaryQuery.data ?? { total: 0, online: 0, untrusted: 0 };
+  const summary = summaryQuery.data;
   const isAdmin = user?.role === "admin";
 
   return (
@@ -80,9 +80,9 @@ export default function NetworkDevices() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardDescription>Detectados</CardDescription><CardTitle className="text-3xl">{summary.total}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><Laptop className="h-4 w-4" />Equipos reportados al proyecto</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>En línea</CardDescription><CardTitle className="text-3xl text-emerald-500">{summary.online}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><Wifi className="h-4 w-4" />Última observación local</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Por revisar</CardDescription><CardTitle className="text-3xl text-amber-500">{summary.untrusted}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldQuestion className="h-4 w-4" />Sin marcar como autorizados</div></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>Detectados</CardDescription><CardTitle className="text-3xl">{summary?.total ?? "N/D"}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><Laptop className="h-4 w-4" />Equipos reportados al proyecto</div></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>En línea</CardDescription><CardTitle className="text-3xl text-emerald-500">{summary?.online ?? "N/D"}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><Wifi className="h-4 w-4" />Última observación local</div></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>Por revisar</CardDescription><CardTitle className="text-3xl text-amber-500">{summary?.untrusted ?? "N/D"}</CardTitle></CardHeader><CardContent><div className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldQuestion className="h-4 w-4" />Sin marcar como autorizados</div></CardContent></Card>
         </div>
 
         <Card>

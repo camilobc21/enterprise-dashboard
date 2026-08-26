@@ -13,6 +13,10 @@ import {
   healthCheck as checkFlaskHealth,
 } from "../_core/flaskClient";
 
+function networksVisibleTo(role: string, networks: any[]) {
+  return role === "admin" ? networks : networks.map(({ bssid, ...network }) => network);
+}
+
 export const wifiRouter = router({
   // Obtener último escaneo WiFi
   getLastScan: protectedProcedure.query(async ({ ctx }) => {
@@ -105,7 +109,7 @@ export const wifiRouter = router({
         sin_datos: false,
         ultimo_escaneo: data.ultimo_escaneo,
         canales: data.canales || [],
-        redes: data.redes || [],
+        redes: networksVisibleTo(ctx.user.role, data.redes || []),
         alertas: data.alertas || [],
         prediccion: data.prediccion,
         historico: data.historico || [],
@@ -157,7 +161,7 @@ export const wifiRouter = router({
   getNetworks: protectedProcedure.query(async ({ ctx }) => {
     try {
       const networks = await getDetectedNetworks();
-      return networks || [];
+        return networksVisibleTo(ctx.user.role, networks || []);
     } catch (error) {
       console.error("[WiFi] Error fetching networks:", error);
       return [];

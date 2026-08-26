@@ -45,7 +45,6 @@ export default function Dashboard() {
   const trendData = useMemo(() => (trendsQuery.data ?? []).slice().reverse().map((scan: any) => ({
     timestamp: scan.timestamp ? new Date(scan.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/D",
     redes: scan.total_redes,
-    densidad: scan.saturacion_general,
   })), [trendsQuery.data]);
   const channelData = useMemo(() => (wifiDashboardQuery.data?.canales ?? [])
     .filter((channel: any) => Number(channel.cantidad_redes) > 0)
@@ -76,7 +75,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Card className="lg:col-span-2"><CardHeader><CardTitle>Historial de escaneos</CardTitle><CardDescription>Densidad observada y redes detectadas por el ESP32.</CardDescription></CardHeader><CardContent>{trendData.length ? <ResponsiveContainer width="100%" height={300}><LineChart data={trendData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="timestamp" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="redes" stroke="#3b82f6" name="Redes observadas" /><Line type="monotone" dataKey="densidad" stroke="#10b981" name="Índice de densidad" /></LineChart></ResponsiveContainer> : <div className="flex h-[300px] items-center justify-center text-muted-foreground">Sin escaneos reales todavía</div>}</CardContent></Card>
+          <Card className="lg:col-span-2"><CardHeader><CardTitle>Historial de escaneos</CardTitle><CardDescription>Conteo de redes detectadas por el ESP32 en cada registro persistido.</CardDescription></CardHeader><CardContent>{trendData.length ? <ResponsiveContainer width="100%" height={300}><LineChart data={trendData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="timestamp" /><YAxis allowDecimals={false} /><Tooltip /><Legend /><Line type="monotone" dataKey="redes" stroke="#3b82f6" name="Redes observadas" /></LineChart></ResponsiveContainer> : <div className="flex h-[300px] items-center justify-center text-muted-foreground">Sin escaneos reales todavía</div>}</CardContent></Card>
           <Card><CardHeader><CardTitle>Distribución por canal</CardTitle><CardDescription>Solo redes observadas en el último escaneo.</CardDescription></CardHeader><CardContent>{channelData.length ? <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={channelData} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ${value}`} outerRadius={80} dataKey="value">{channelData.map((entry: { name: string; value: number }, index: number) => <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <div className="flex h-[300px] items-center justify-center text-muted-foreground">Sin canales observados</div>}</CardContent></Card>
         </div>
 

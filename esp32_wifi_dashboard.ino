@@ -8,7 +8,7 @@
  *   - ESP32 by Espressif Systems
  *   - ArduinoJson 6.x o superior
  *
- * Antes de cargar el programa cambia WIFI_SSID, WIFI_PASSWORD y API_URL.
+ * Antes de cargar el programa cambia WIFI_SSID, WIFI_PASSWORD, API_URL y ESP32_SCAN_TOKEN.
  */
 
 #include <Arduino.h>
@@ -23,6 +23,10 @@ const char* WIFI_PASSWORD = "TU_CONTRASENA";
 // Usa la IP LAN del computador donde está ejecutándose Flask.
 // Ejemplo: http://192.168.1.100:5000/api/scan
 const char* API_URL = "http://192.168.1.100:5000/api/scan";
+
+// Debe coincidir con ESP32_SCAN_TOKEN en el .env del computador que ejecuta Flask.
+// Genera un valor aleatorio de al menos 16 caracteres y nunca lo publiques en Git.
+const char* ESP32_SCAN_TOKEN = "REEMPLAZA_CON_TU_TOKEN_LOCAL_SECRETO";
 
 const unsigned long SCAN_INTERVAL_MS = 30000UL;
 const uint16_t MAX_NETWORKS_TO_SEND = 50;
@@ -126,6 +130,7 @@ void sendScanToFlask() {
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-ESP32-Device", makeDeviceId());
+  http.addHeader("X-ESP32-Token", ESP32_SCAN_TOKEN);
 
   const int statusCode = http.POST(requestBody);
   if (statusCode > 0) {

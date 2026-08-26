@@ -20,45 +20,33 @@ async function getWiFiData() {
 }
 
 // Generar contexto detallado para la IA basado en datos WiFi
-function generateWiFiContext(wifiData: any): string {
+export function generateWiFiContext(wifiData: any): string {
   if (!wifiData || wifiData.sin_datos) {
     return "No hay datos de WiFi disponibles actualmente.";
   }
 
-  const { ultimo_escaneo, redes, canales, prediccion, alertas, historico } = wifiData;
+  const { ultimo_escaneo, redes, canales, historico } = wifiData;
+  const display = (value: unknown, suffix = "") => value === null || value === undefined || value === "" ? "N/D" : `${value}${suffix}`;
 
   let context = `
 ## DATOS ACTUALES DE ANÁLISIS WIFI
 
 ### Escaneo Más Reciente
-- Total de redes detectadas: ${ultimo_escaneo?.total_redes || 0}
-- Canal óptimo predicho: ${ultimo_escaneo?.canal_optimo || "N/A"}
-- Saturación general: ${ultimo_escaneo?.saturacion_general || 0}%
-- Ocupación espectral global: ${ultimo_escaneo?.ocupacion_espectral || 0}%
-- Pérdida de paquetes: ${ultimo_escaneo?.perdida_paquetes || 0}%
-- Tendencia IA: ${ultimo_escaneo?.tendencia_ia || 0}
-- Timestamp: ${ultimo_escaneo?.timestamp || "N/A"}
+- Total de redes observadas: ${display(ultimo_escaneo?.total_redes)}
+- Marca temporal: ${display(ultimo_escaneo?.timestamp)}
+- Ocupación, interferencia, pérdida, predicciones y canal óptimo: N/D (el escaneo pasivo ESP32 no los mide)
 
 ### Redes WiFi Detectadas (Top 10)
-${redes?.slice(0, 10).map((r: any) => `- **${r.ssid}** | Canal: ${r.canal} | RSSI: ${r.rssi}dBm | Ancho: ${r.ancho_banda}MHz | Encriptación: ${r.encriptacion}`).join("\n")}
+${redes?.slice(0, 10).map((r: any) => `- **${r.ssid || "SSID oculto"}** | Canal: ${display(r.canal)} | RSSI: ${display(r.rssi, " dBm")} | Cifrado reportado: ${display(r.encriptacion)}`).join("\n") || "N/D"}
 
 ### Estado Detallado de Canales (1-13)
-${canales?.map((c: any) => {
-  const estado = c.anomalia ? "🔴 ANOMALÍA" : c.saturacion >= 70 ? "🟡 CRÍTICO" : "🟢 NORMAL";
-  return `Canal ${c.canal}: ${estado} | Redes: ${c.cantidad_redes} | Saturación: ${c.saturacion}% | Ocupación Espectral: ${c.ocupacion_espectral}% | Interferencia Adyacente: ${c.interferencia_adyacente}% | Pérdida: ${c.perdida_paquetes}% | Riesgo: ${c.riesgo_anomalia}%`;
-}).join("\n")}
-
-### Predicción IA
-- Canal predicho: ${prediccion?.canal_predicho || "N/A"}
-- Confianza: ${prediccion?.confianza || 0}%
-- Score espectral: ${prediccion?.score_espectral || 0}
-- Detalle: ${prediccion?.detalle || "N/A"}
-
-### Alertas Activas (Últimas 10)
-${alertas?.slice(0, 10).map((a: any) => `- [${a.severidad}] Canal ${a.canal} - ${a.tipo}: ${a.descripcion}`).join("\n")}
+${canales?.map((c: any) => `Canal ${display(c.canal)}: ${display(c.cantidad_redes)} redes observadas`).join("\n") || "N/D"}
 
 ### Histórico de Últimos 20 Escaneos
-${historico?.map((h: any) => `- Escaneo ${h.id}: ${h.total_redes} redes, Saturación: ${h.saturacion_general}%, Ocupación: ${h.ocupacion_espectral}%, Pérdida: ${h.perdida_paquetes}%, Tendencia: ${h.tendencia_ia}`).join("\n")}
+${historico?.map((h: any) => `- Escaneo ${display(h.id)}: ${display(h.total_redes)} redes observadas, fecha: ${display(h.timestamp)}`).join("\n") || "N/D"}
+
+### Regla obligatoria para el análisis
+No inventes mediciones, predicciones ni el estado de una red. Diferencia explícitamente las observaciones recibidas de las recomendaciones generales y responde N/D cuando no exista evidencia.
   `;
 
   return context;

@@ -10,19 +10,18 @@ export const exportRouter = router({
       z.object({
         title: z.string(),
         data: z.object({
-          saturacion: z.number(),
-          ocupacion: z.number(),
-          perdida: z.number(),
+          escaneo: z.object({
+            total_redes_observadas: z.number().nullable(),
+            timestamp: z.string().nullable(),
+          }),
           canales: z.array(
             z.object({
               canal: z.number(),
-              saturacion: z.number(),
-              interferencia: z.number(),
-              riesgo: z.string(),
+              redes_observadas: z.number().nullable(),
             })
           ),
-          recomendaciones: z.array(z.string()),
-          timestamp: z.string(),
+          limitaciones: z.string(),
+          generado_en_utc: z.string(),
         }),
       })
     )
@@ -124,37 +123,27 @@ export const exportRouter = router({
             <body>
               <div class="header">
                 <h1>📊 ${input.title}</h1>
-                <p>Reporte de Análisis WiFi IA Pro</p>
-                <p>Generado: ${new Date(input.data.timestamp).toLocaleString("es-ES")}</p>
+                <p>Reporte de observaciones WiFi</p>
+                <p>Generado: ${new Date(input.data.generado_en_utc).toLocaleString("es-ES")}</p>
               </div>
 
               <div class="section">
-                <h2>Métricas Generales</h2>
+                <h2>Escaneo persistido</h2>
                 <div class="metrics">
                   <div class="metric-card">
-                    <div class="label">Saturación General</div>
-                    <div class="value">${input.data.saturacion.toFixed(1)}%</div>
-                  </div>
-                  <div class="metric-card">
-                    <div class="label">Ocupación Espectral</div>
-                    <div class="value">${input.data.ocupacion.toFixed(1)}%</div>
-                  </div>
-                  <div class="metric-card">
-                    <div class="label">Pérdida de Paquetes</div>
-                    <div class="value">${input.data.perdida.toFixed(1)}%</div>
+                    <div class="label">Redes observadas</div>
+                    <div class="value">${input.data.escaneo.total_redes_observadas ?? "N/D"}</div>
                   </div>
                 </div>
               </div>
 
               <div class="section">
-                <h2>Análisis por Canal</h2>
+                <h2>Observaciones por canal</h2>
                 <table>
                   <thead>
                     <tr>
                       <th>Canal</th>
-                      <th>Saturación</th>
-                      <th>Interferencia</th>
-                      <th>Riesgo</th>
+                      <th>Redes observadas</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,9 +152,7 @@ export const exportRouter = router({
                         (c) => `
                       <tr>
                         <td>Canal ${c.canal}</td>
-                        <td>${c.saturacion.toFixed(1)}%</td>
-                        <td>${c.interferencia.toFixed(1)}%</td>
-                        <td>${c.riesgo}</td>
+                        <td>${c.redes_observadas ?? "N/D"}</td>
                       </tr>
                     `
                       )
@@ -175,12 +162,12 @@ export const exportRouter = router({
               </div>
 
               <div class="section">
-                <h2>Recomendaciones</h2>
-                ${input.data.recomendaciones.map((rec) => `<div class="recommendation">✓ ${rec}</div>`).join("")}
+                <h2>Límites de medición</h2>
+                <div class="recommendation">${input.data.limitaciones}</div>
               </div>
 
               <div class="footer">
-                <p>Este reporte fue generado automáticamente por el sistema WiFi IA Pro</p>
+                <p>Este reporte contiene únicamente datos persistidos o límites declarados.</p>
                 <p>Para más información, visite el dashboard</p>
               </div>
             </body>
@@ -210,7 +197,7 @@ export const exportRouter = router({
           });
           yPosition -= 30;
 
-          page.drawText("Reporte de Análisis WiFi IA Pro", {
+          page.drawText("Reporte de observaciones WiFi", {
             x: 50,
             y: yPosition,
             size: 12,
@@ -218,7 +205,7 @@ export const exportRouter = router({
           });
           yPosition -= 20;
 
-          page.drawText(`Generado: ${new Date(input.data.timestamp).toLocaleString("es-ES")}`, {
+          page.drawText(`Generado: ${new Date(input.data.generado_en_utc).toLocaleString("es-ES")}`, {
             x: 50,
             y: yPosition,
             size: 10,
@@ -235,8 +222,8 @@ export const exportRouter = router({
           });
           yPosition -= 30;
 
-          // Métricas Generales
-          page.drawText("Métricas Generales", {
+          // Observaciones del escaneo
+          page.drawText("Escaneo persistido", {
             x: 50,
             y: yPosition,
             size: 14,
@@ -244,11 +231,7 @@ export const exportRouter = router({
           });
           yPosition -= 25;
 
-          const metrics = [
-            { label: "Saturación General", value: `${input.data.saturacion.toFixed(1)}%` },
-            { label: "Ocupación Espectral", value: `${input.data.ocupacion.toFixed(1)}%` },
-            { label: "Pérdida de Paquetes", value: `${input.data.perdida.toFixed(1)}%` },
-          ];
+          const metrics = [{ label: "Redes observadas", value: `${input.data.escaneo.total_redes_observadas ?? "N/D"}` }];
 
           metrics.forEach((metric, idx) => {
             const xPos = 50 + idx * 170;
@@ -267,8 +250,8 @@ export const exportRouter = router({
           });
           yPosition -= 60;
 
-          // Análisis por Canal
-          page.drawText("Análisis por Canal", {
+          // Observaciones por canal
+          page.drawText("Observaciones por canal", {
             x: 50,
             y: yPosition,
             size: 14,
@@ -277,8 +260,8 @@ export const exportRouter = router({
           yPosition -= 25;
 
           // Tabla de canales
-          const tableHeaders = ["Canal", "Saturación", "Interferencia", "Riesgo"];
-          const colWidths = [100, 130, 130, 100];
+          const tableHeaders = ["Canal", "Redes observadas"];
+          const colWidths = [170, 200];
           let xPos = 50;
 
           tableHeaders.forEach((header, idx) => {
@@ -297,9 +280,7 @@ export const exportRouter = router({
             xPos = 50;
             const rowData = [
               `Canal ${canal.canal}`,
-              `${canal.saturacion.toFixed(1)}%`,
-              `${canal.interferencia.toFixed(1)}%`,
-              canal.riesgo,
+              `${canal.redes_observadas ?? "N/D"}`,
             ];
             rowData.forEach((data, idx) => {
               page.drawText(data, {
@@ -314,8 +295,8 @@ export const exportRouter = router({
           });
           yPosition -= 20;
 
-          // Recomendaciones
-          page.drawText("Recomendaciones", {
+          // Límites de medición
+          page.drawText("Límites de medición", {
             x: 50,
             y: yPosition,
             size: 14,
@@ -323,19 +304,16 @@ export const exportRouter = router({
           });
           yPosition -= 20;
 
-          input.data.recomendaciones.slice(0, 4).forEach((rec) => {
-            page.drawText(`* ${rec}`, {
-              x: 60,
-              y: yPosition,
-              size: 9,
-              color: black,
-              maxWidth: 500,
-            });
-            yPosition -= 15;
+          page.drawText(input.data.limitaciones, {
+            x: 60,
+            y: yPosition,
+            size: 9,
+            color: black,
+            maxWidth: 500,
           });
 
           // Footer
-          page.drawText("Este reporte fue generado automáticamente por el sistema WiFi IA Pro", {
+          page.drawText("Este reporte contiene únicamente datos persistidos o límites declarados.", {
             x: 50,
             y: 30,
             size: 8,

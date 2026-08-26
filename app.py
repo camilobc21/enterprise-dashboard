@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
-"""API Flask local para recibir escaneos ESP32 y persistirlos en MySQL/XAMPP."""
+"""API Flask local para recibir observaciones WiFi ESP32 y persistirlas en MySQL/XAMPP."""
 
-import json
+import hmac
 import os
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -26,13 +26,29 @@ except ImportError:
 
 
 app = Flask(__name__)
-CORS(app)
+cors_origins = [origin.strip() for origin in os.getenv("DASHBOARD_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
+CORS(app, resources={r"/api/*": {"origins": cors_origins, "allow_headers": ["Content-Type", "X-ESP32-Token", "X-ESP32-Device"]}})
 
-latest_scan: dict[str, Any] | None = None
+MAX_NETWORKS_PER_SCAN = 100
+SSID_MAX_BYTES = 32
+BSSID_PATTERN = re.compile(r"^[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}$")
 
 
 class PersistenceError(RuntimeError):
     """Error controlado al guardar o consultar datos WiFi."""
+
+
+class ValidationError(ValueError):
+    """Error controlado para observaciones que no cumplen el contrato del ESP32."""
+
+
+class AuthenticationError(PermissionError):
+    """Error controlado para un sensor que no presentó un token válido."""
+
+
+def _utc_now() -> datetime:
+    """Genera la marca temporal en UTC para persistencia y trazabilidad."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _database_settings() -> dict[str, Any]:
@@ -65,13 +81,6 @@ def _connect_db():
         raise PersistenceError(f"No se pudo conectar a MySQL/XAMPP: {error}") from error
 
 
-def _to_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
 def _to_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
@@ -79,24 +88,53 @@ def _to_int(value: Any, default: int = 0) -> int:
         return default
 
 
-def _optional_float(value: Any) -> float | None:
-    if value is None or value == "":
-        return None
+def _required_int(value: Any, field: str, minimum: int, maximum: int) -> int:
     try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
+        parsed = int(value)
+    except (TypeError, ValueError) as error:
+        raise ValidationError(f"{field} debe ser un entero entre {minimum} y {maximum}.") from error
+    if parsed < minimum or parsed > maximum:
+        raise ValidationError(f"{field} debe estar entre {minimum} y {maximum}.")
+    return parsed
+
+
+def _as_boolean(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in {"true", "1", "yes", "si", "sí"}
+
+
+def _verify_scan_token() -> None:
+    expected = os.getenv("ESP32_SCAN_TOKEN", "").strip()
+    if len(expected) < 16:
+        raise PersistenceError("Falta ESP32_SCAN_TOKEN o tiene menos de 16 caracteres. Configúralo antes de aceptar escaneos.")
+    presented = request.headers.get("X-ESP32-Token", "")
+    if not hmac.compare_digest(presented, expected):
+        raise AuthenticationError("El token del ESP32 no es válido.")
 
 
 def _network_observation(network: dict[str, Any]) -> dict[str, Any]:
     ssid = str(network.get("ssid", "")).strip()
+    if len(ssid.encode("utf-8")) > SSID_MAX_BYTES:
+        raise ValidationError("ssid no puede superar 32 octetos UTF-8.")
+
+    raw_bssid = str(network.get("bssid", "")).strip()
+    if raw_bssid and not BSSID_PATTERN.fullmatch(raw_bssid):
+        raise ValidationError("bssid debe tener el formato AA:BB:CC:DD:EE:FF.")
+
+    encryption = str(network.get("encryption", network.get("encriptacion", "UNKNOWN"))).strip() or "UNKNOWN"
+    if len(encryption) > 80:
+        raise ValidationError("encriptacion no puede superar 80 caracteres.")
+
     return {
         "ssid": ssid or None,
-        "bssid": str(network.get("bssid", "")).strip() or None,
-        "canal": _to_int(network.get("channel", network.get("canal")), 0),
-        "rssi": _to_int(network.get("rssi"), -127),
-        "encriptacion": str(network.get("encryption", network.get("encriptacion", "UNKNOWN"))).strip() or "UNKNOWN",
-        "oculto": bool(network.get("hidden", network.get("oculto", False))) or not ssid,
+        "bssid": raw_bssid.upper() or None,
+        "canal": _required_int(network.get("channel", network.get("canal")), "canal", 1, 196),
+        "rssi": _required_int(network.get("rssi"), "rssi", -127, 0),
+        "encriptacion": encryption,
+        "oculto": _as_boolean(network.get("hidden", network.get("oculto", False))) or not ssid,
     }
 
 
@@ -119,61 +157,34 @@ def _resolve_owner_id(cursor) -> int:
 def build_scan_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
     raw_networks = payload.get("networks", payload.get("redes", []))
     if not isinstance(raw_networks, list):
-        raise PersistenceError("El campo networks debe ser una lista.")
+        raise ValidationError("El campo networks debe ser una lista.")
+    if len(raw_networks) > MAX_NETWORKS_PER_SCAN:
+        raise ValidationError(f"Un escaneo no puede contener más de {MAX_NETWORKS_PER_SCAN} redes.")
+    if not all(isinstance(network, dict) for network in raw_networks):
+        raise ValidationError("Cada elemento de networks debe ser un objeto JSON.")
 
-    networks = [_network_observation(network) for network in raw_networks if isinstance(network, dict)]
-    total_networks = len(networks)
-    channel_counts = {channel: 0 for channel in range(1, 14)}
-    for network in networks:
-        channel = network["canal"]
-        if channel in channel_counts:
-            channel_counts[channel] += 1
+    networks = [_network_observation(network) for network in raw_networks]
+    device_id = str(payload.get("device_id", payload.get("dispositivo", "esp32-scanner"))).strip() or "esp32-scanner"
+    if len(device_id) > 80:
+        raise ValidationError("device_id no puede superar 80 caracteres.")
 
-    recommended_channel = min((1, 6, 11), key=lambda channel: channel_counts[channel])
-    timestamp = datetime.now()
-    density_reference = max(1, _to_int(os.getenv("WIFI_CHANNEL_DENSITY_REFERENCE", "8"), 8))
-    alert_threshold = max(1, _to_int(os.getenv("WIFI_DENSITY_ALERT_THRESHOLD", "6"), 6))
-    channels = []
-    alerts = []
-    for channel, count in channel_counts.items():
-        density_index = round(min(100.0, (count / density_reference) * 100), 2)
-        channel_data = {
-            "canal": channel,
-            "cantidad_redes": count,
-            "saturacion": density_index,
-            "ocupacion_espectral": None,
-            "interferencia_adyacente": None,
-            "perdida_paquetes": None,
-            "riesgo_anomalia": density_index,
-            "anomalia": 1 if count >= alert_threshold else 0,
-        }
-        channels.append(channel_data)
-        if count >= alert_threshold:
-            alerts.append({
-                "canal": channel,
-                "tipo": "saturacion",
-                "severidad": "critical" if count >= density_reference else "warning",
-                "descripcion": f"El canal {channel} tiene {count} redes observadas por el ESP32.",
-                "metadata": {"cantidad_redes": count, "fuente": "esp32", "tipo_medida": "densidad_observada"},
-            })
-
-    scan_summary = {
-        "dispositivo": payload.get("device_id", "esp32-scanner"),
-        "total_redes": total_networks,
-        "canal_optimo": recommended_channel,
-        "saturacion_general": max((channel["saturacion"] for channel in channels), default=0.0),
-        "ocupacion_espectral": None,
-        "perdida_paquetes": _optional_float(payload.get("packet_loss", payload.get("perdida_paquetes"))),
-        "tendencia_ia": None,
-        "timestamp": timestamp.isoformat(),
-    }
+    observed_at = _utc_now()
     return {
-        "scan_summary": scan_summary,
+        "scan_summary": {
+            "dispositivo": device_id,
+            "total_redes": len(networks),
+            "canal_optimo": None,
+            "saturacion_general": None,
+            "ocupacion_espectral": None,
+            "perdida_paquetes": None,
+            "tendencia_ia": None,
+            "timestamp": _serializable(observed_at),
+        },
         "networks": networks,
-        "channels": channels,
-        "alerts": alerts,
+        "channels": [],
+        "alerts": [],
         "prediction": None,
-        "observed_at": timestamp,
+        "observed_at": observed_at,
     }
 
 
@@ -189,74 +200,18 @@ def persist_scan(snapshot: dict[str, Any]) -> int:
                   (userId, timestamp, saturacionGeneral, ocupacionEspectral, perdidaPaquetes, totalRedes, tendenciaIA, canalOptimo)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (
-                    owner_id,
-                    snapshot["observed_at"],
-                    summary["saturacion_general"],
-                    summary["ocupacion_espectral"],
-                    summary["perdida_paquetes"],
-                    summary["total_redes"],
-                    summary["tendencia_ia"],
-                    summary["canal_optimo"],
-                ),
+                (owner_id, snapshot["observed_at"], summary["saturacion_general"], summary["ocupacion_espectral"], summary["perdida_paquetes"], summary["total_redes"], summary["tendencia_ia"], summary["canal_optimo"]),
             )
             scan_id = cursor.lastrowid
 
             for network in snapshot["networks"]:
-                if network["canal"] <= 0:
-                    continue
                 cursor.execute(
                     """
-                    INSERT INTO wifi_networks
-                      (scanId, ssid, bssid, canal, rssi, encriptacion, oculto)
+                    INSERT INTO wifi_networks (scanId, ssid, bssid, canal, rssi, encriptacion, oculto)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
-                    (
-                        scan_id,
-                        network["ssid"],
-                        network["bssid"],
-                        network["canal"],
-                        network["rssi"],
-                        network["encriptacion"],
-                        network["oculto"],
-                    ),
+                    (scan_id, network["ssid"], network["bssid"], network["canal"], network["rssi"], network["encriptacion"], network["oculto"]),
                 )
-
-            for channel in snapshot["channels"]:
-                cursor.execute(
-                    """
-                    INSERT INTO wifi_channels
-                      (scanId, canal, saturacion, ocupacionEspectral, interferencia, perdidaPaquetes, riesgoAnomalia)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        scan_id,
-                        channel["canal"],
-                        channel["saturacion"],
-                        channel["ocupacion_espectral"],
-                        channel["interferencia_adyacente"],
-                        channel["perdida_paquetes"],
-                        channel["riesgo_anomalia"],
-                    ),
-                )
-
-            for alert in snapshot["alerts"]:
-                cursor.execute(
-                    """
-                    INSERT INTO wifi_alerts (userId, scanId, timestamp, tipo, descripcion, severidad, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        owner_id,
-                        scan_id,
-                        snapshot["observed_at"],
-                        alert["tipo"],
-                        alert["descripcion"],
-                        alert["severidad"],
-                        json.dumps(alert["metadata"]),
-                    ),
-                )
-
         connection.commit()
         return _to_int(scan_id)
     except PersistenceError:
@@ -270,22 +225,13 @@ def persist_scan(snapshot: dict[str, Any]) -> int:
 
 
 def _empty_dashboard():
-    return {
-        "ok": True,
-        "sin_datos": True,
-        "ultimo_escaneo": None,
-        "canales": [],
-        "redes": [],
-        "alertas": [],
-        "prediccion": None,
-        "historico": [],
-        "anomalias_futuras": [],
-    }
+    return {"ok": True, "sin_datos": True, "ultimo_escaneo": None, "canales": [], "redes": [], "alertas": [], "prediccion": None, "historico": [], "anomalias_futuras": []}
 
 
 def _serializable(value: Any):
     if isinstance(value, datetime):
-        return value.isoformat()
+        timestamp = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return timestamp.isoformat().replace("+00:00", "Z")
     if value is None:
         return None
     if hasattr(value, "as_tuple"):
@@ -293,154 +239,45 @@ def _serializable(value: Any):
     return value
 
 
+def _channel_counts(networks: list[dict[str, Any]]) -> dict[int, int]:
+    counts: dict[int, int] = {}
+    for network in networks:
+        channel = _to_int(network.get("canal"))
+        counts[channel] = counts.get(channel, 0) + 1
+    return counts
+
+
 def _load_dashboard_from_db():
     connection = _connect_db()
     try:
         with connection.cursor() as cursor:
             owner_id = _resolve_owner_id(cursor)
-            cursor.execute(
-                """
-                SELECT id, timestamp, saturacionGeneral, ocupacionEspectral, perdidaPaquetes,
-                       totalRedes, tendenciaIA, canalOptimo
-                FROM wifi_scans
-                WHERE userId = %s
-                ORDER BY timestamp DESC, id DESC
-                LIMIT 1
-                """,
-                (owner_id,),
-            )
+            cursor.execute("SELECT id, timestamp, totalRedes FROM wifi_scans WHERE userId = %s ORDER BY timestamp DESC, id DESC LIMIT 1", (owner_id,))
             latest = cursor.fetchone()
             if not latest:
                 return _empty_dashboard()
 
             scan_id = _to_int(latest["id"])
-            cursor.execute(
-                """
-                SELECT ssid, bssid, canal, rssi, encriptacion, oculto
-                FROM wifi_networks WHERE scanId = %s ORDER BY rssi DESC, id ASC
-                """,
-                (scan_id,),
-            )
+            cursor.execute("SELECT ssid, bssid, canal, rssi, encriptacion, oculto FROM wifi_networks WHERE scanId = %s ORDER BY rssi DESC, id ASC", (scan_id,))
             networks = [
-                {
-                    "ssid": row["ssid"] or "",
-                    "bssid": row["bssid"],
-                    "canal": _to_int(row["canal"]),
-                    "rssi": _to_int(row["rssi"], -127),
-                    "encriptacion": row["encriptacion"] or "UNKNOWN",
-                    "oculto": bool(row["oculto"]),
-                }
+                {"ssid": row["ssid"] or "", "bssid": row["bssid"], "canal": _to_int(row["canal"]), "rssi": _to_int(row["rssi"], -127), "encriptacion": row["encriptacion"] or "UNKNOWN", "oculto": bool(row["oculto"])}
                 for row in cursor.fetchall()
             ]
-            network_counts = {channel: 0 for channel in range(1, 14)}
-            for network in networks:
-                if network["canal"] in network_counts:
-                    network_counts[network["canal"]] += 1
-
-            cursor.execute(
-                """
-                SELECT canal, saturacion, ocupacionEspectral, interferencia,
-                       perdidaPaquetes, riesgoAnomalia
-                FROM wifi_channels WHERE scanId = %s ORDER BY canal ASC
-                """,
-                (scan_id,),
-            )
             channels = [
-                {
-                    "canal": _to_int(row["canal"]),
-                    "cantidad_redes": network_counts.get(_to_int(row["canal"]), 0),
-                    "saturacion": _serializable(row["saturacion"]),
-                    "ocupacion_espectral": _serializable(row["ocupacionEspectral"]),
-                    "interferencia_adyacente": _serializable(row["interferencia"]),
-                    "perdida_paquetes": _serializable(row["perdidaPaquetes"]),
-                    "riesgo_anomalia": _serializable(row["riesgoAnomalia"]),
-                    "anomalia": 1 if network_counts.get(_to_int(row["canal"]), 0) >= _to_int(os.getenv("WIFI_DENSITY_ALERT_THRESHOLD", "6"), 6) else 0,
-                }
-                for row in cursor.fetchall()
+                {"canal": channel, "cantidad_redes": count, "saturacion": None, "ocupacion_espectral": None, "interferencia_adyacente": None, "perdida_paquetes": None, "riesgo_anomalia": None, "anomalia": None}
+                for channel, count in sorted(_channel_counts(networks).items())
             ]
 
-            cursor.execute(
-                """
-                SELECT timestamp, tipo, descripcion, severidad, metadata
-                FROM wifi_alerts WHERE scanId = %s ORDER BY timestamp DESC, id DESC
-                """,
-                (scan_id,),
-            )
-            alerts = []
-            for row in cursor.fetchall():
-                try:
-                    metadata = json.loads(row["metadata"]) if row["metadata"] else {}
-                except (TypeError, json.JSONDecodeError):
-                    metadata = {}
-                alerts.append({
-                    "timestamp": _serializable(row["timestamp"]),
-                    "tipo": row["tipo"],
-                    "descripcion": row["descripcion"],
-                    "severidad": row["severidad"],
-                    "metadata": metadata,
-                })
-
-            cursor.execute(
-                """
-                SELECT id, timestamp, saturacionGeneral, ocupacionEspectral, perdidaPaquetes,
-                       totalRedes, tendenciaIA, canalOptimo
-                FROM wifi_scans WHERE userId = %s
-                ORDER BY timestamp DESC, id DESC LIMIT 20
-                """,
-                (owner_id,),
-            )
+            cursor.execute("SELECT id, timestamp, totalRedes FROM wifi_scans WHERE userId = %s ORDER BY timestamp DESC, id DESC LIMIT 20", (owner_id,))
             history = [
-                {
-                    "id": _to_int(row["id"]),
-                    "timestamp": _serializable(row["timestamp"]),
-                    "saturacion_general": _serializable(row["saturacionGeneral"]),
-                    "ocupacion_espectral": _serializable(row["ocupacionEspectral"]),
-                    "perdida_paquetes": _serializable(row["perdidaPaquetes"]),
-                    "total_redes": _to_int(row["totalRedes"]),
-                    "tendencia_ia": _serializable(row["tendenciaIA"]),
-                    "canal_optimo": _serializable(row["canalOptimo"]),
-                }
+                {"id": _to_int(row["id"]), "timestamp": _serializable(row["timestamp"]), "saturacion_general": None, "ocupacion_espectral": None, "perdida_paquetes": None, "total_redes": _to_int(row["totalRedes"]), "tendencia_ia": None, "canal_optimo": None}
                 for row in cursor.fetchall()
             ]
 
-            summary = {
-                "id": scan_id,
-                "timestamp": _serializable(latest["timestamp"]),
-                "total_redes": _to_int(latest["totalRedes"]),
-                "canal_optimo": _serializable(latest["canalOptimo"]),
-                "saturacion_general": _serializable(latest["saturacionGeneral"]),
-                "ocupacion_espectral": _serializable(latest["ocupacionEspectral"]),
-                "perdida_paquetes": _serializable(latest["perdidaPaquetes"]),
-                "tendencia_ia": _serializable(latest["tendenciaIA"]),
-            }
-            return {
-                "ok": True,
-                "sin_datos": False,
-                "ultimo_escaneo": summary,
-                "redes": networks,
-                "canales": channels,
-                "alertas": alerts,
-                "prediccion": None,
-                "historico": history,
-                "anomalias_futuras": [],
-            }
+            summary = {"id": scan_id, "timestamp": _serializable(latest["timestamp"]), "total_redes": _to_int(latest["totalRedes"]), "canal_optimo": None, "saturacion_general": None, "ocupacion_espectral": None, "perdida_paquetes": None, "tendencia_ia": None}
+            return {"ok": True, "sin_datos": False, "ultimo_escaneo": summary, "redes": networks, "canales": channels, "alertas": [], "prediccion": None, "historico": history, "anomalias_futuras": []}
     finally:
         connection.close()
-
-
-def _build_dashboard(snapshot: dict[str, Any], scan_id: int, history: list[dict[str, Any]] | None = None):
-    summary = {"id": scan_id, **snapshot["scan_summary"]}
-    return {
-        "ok": True,
-        "sin_datos": False,
-        "ultimo_escaneo": summary,
-        "redes": snapshot["networks"],
-        "canales": snapshot["channels"],
-        "alertas": snapshot["alerts"],
-        "prediccion": snapshot["prediction"],
-        "historico": history or [summary],
-        "anomalias_futuras": [],
-    }
 
 
 @app.route("/api/health", methods=["GET"])
@@ -450,32 +287,32 @@ def health():
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         connection.close()
-        database_state = "connected"
     except PersistenceError as error:
-        database_state = "disconnected"
-        return jsonify({"ok": False, "db": database_state, "status": str(error)}), 503
-
-    return jsonify({"ok": True, "db": database_state, "status": "running", "timestamp": datetime.now().isoformat()})
+        return jsonify({"ok": False, "db": "disconnected", "status": str(error)}), 503
+    auth_state = "configured" if len(os.getenv("ESP32_SCAN_TOKEN", "").strip()) >= 16 else "missing"
+    return jsonify({"ok": True, "db": "connected", "scan_auth": auth_state, "status": "running", "timestamp": _serializable(_utc_now())})
 
 
 @app.route("/api/scan", methods=["POST"])
 @app.route("/api/esp_scan", methods=["POST"])
 def receive_scan():
-    global latest_scan
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "JSON inválido"}), 400
-
     try:
+        _verify_scan_token()
         snapshot = build_scan_snapshot(payload)
         scan_id = persist_scan(snapshot)
-        latest_scan = _build_dashboard(snapshot, scan_id)
+    except AuthenticationError as error:
+        return jsonify({"ok": False, "error": str(error)}), 401
+    except ValidationError as error:
+        return jsonify({"ok": False, "error": str(error)}), 400
     except PersistenceError as error:
         app.logger.error("No se guardó el escaneo: %s", error)
         return jsonify({"ok": False, "error": str(error)}), 503
 
-    app.logger.info("Escaneo %s guardado desde %s: %s redes.", scan_id, payload.get("device_id"), len(snapshot["networks"]))
-    return jsonify({"ok": True, "scan_id": scan_id, "received": len(snapshot["networks"]), "device_id": payload.get("device_id")}), 201
+    app.logger.info("Escaneo %s guardado desde %s: %s redes observadas.", scan_id, snapshot["scan_summary"]["dispositivo"], len(snapshot["networks"]))
+    return jsonify({"ok": True, "scan_id": scan_id, "received": len(snapshot["networks"]), "device_id": snapshot["scan_summary"]["dispositivo"]}), 201
 
 
 @app.route("/api/dashboard", methods=["GET"])
@@ -495,7 +332,7 @@ def get_metrics():
         dashboard = _load_dashboard_from_db()
         return jsonify({"metrics": {"active_scans": len(dashboard["historico"]), "status": "healthy", "last_scan": dashboard["ultimo_escaneo"]}})
     except PersistenceError as error:
-        return jsonify({"metrics": {"active_scans": 0, "status": "unavailable", "error": str(error)}}), 503
+        return jsonify({"metrics": {"active_scans": None, "status": "unavailable", "error": str(error)}}), 503
 
 
 if __name__ == "__main__":
