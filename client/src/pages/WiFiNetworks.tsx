@@ -49,13 +49,20 @@ export default function WiFiNetworks() {
     return <Badge className="bg-yellow-100 text-yellow-800">Solapado</Badge>;
   };
 
-  const getChannelHealth = (saturacion: number, ocupacion: number, interferencia: number) => {
+  const getChannelHealth = (saturacion: number | null | undefined, ocupacion: number | null | undefined, interferencia: number | null | undefined) => {
+    if (saturacion === null || saturacion === undefined || ocupacion === null || ocupacion === undefined || interferencia === null || interferencia === undefined) {
+      return { label: "N/D", color: "bg-slate-100 border-slate-300", textColor: "text-slate-600" };
+    }
     const score = (saturacion * 0.4 + ocupacion * 0.3 + interferencia * 0.3);
     if (score < 30) return { label: "Excelente", color: "bg-green-100 border-green-300", textColor: "text-green-700" };
     if (score < 50) return { label: "Bueno", color: "bg-blue-100 border-blue-300", textColor: "text-blue-700" };
     if (score < 70) return { label: "Regular", color: "bg-yellow-100 border-yellow-300", textColor: "text-yellow-700" };
     return { label: "Congestionado", color: "bg-red-100 border-red-300", textColor: "text-red-700" };
   };
+
+  const averageSignal = dashboardQuery.data?.redes?.length
+    ? Math.round(dashboardQuery.data.redes.reduce((sum: number, network: any) => sum + Number(network.rssi || 0), 0) / dashboardQuery.data.redes.length)
+    : null;
 
   if (loading) {
     return (
@@ -110,13 +117,7 @@ export default function WiFiNetworks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {dashboardQuery.data?.redes && dashboardQuery.data.redes.length > 0
-                  ? Math.round(
-                      dashboardQuery.data.redes.reduce((sum: number, n: any) => sum + n.rssi, 0) /
-                        dashboardQuery.data.redes.length
-                    )
-                  : 0}{" "}
-                dBm
+                {averageSignal === null ? "N/D" : `${averageSignal} dBm`}
               </div>
             </CardContent>
           </Card>
@@ -211,11 +212,7 @@ export default function WiFiNetworks() {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {dashboardQuery.data?.canales?.map((canalData: any) => {
                   const isNonOverlapping = [1, 6, 11].includes(canalData.canal);
-                  const health = getChannelHealth(
-                    canalData.saturacion || 0,
-                    canalData.ocupacion_espectral || 0,
-                    canalData.interferencia_adyacente || 0
-                  );
+                  const health = getChannelHealth(canalData.saturacion, canalData.ocupacion_espectral, canalData.interferencia_adyacente);
                   const redes = canalData.cantidad_redes || 0;
                   const hasAnomaly = canalData.anomalia === 1;
 
@@ -233,8 +230,8 @@ export default function WiFiNetworks() {
                       <p className={`text-xs font-medium ${health.textColor}`}>{health.label}</p>
                       <p className="text-xs text-muted-foreground mt-1">{redes} redes</p>
                       <div className="mt-2 space-y-1 text-xs">
-                        <p className="text-muted-foreground">Sat: {Math.round((canalData.saturacion || 0) * 100)}%</p>
-                        <p className="text-muted-foreground">Ocup: {Math.round((canalData.ocupacion_espectral || 0) * 100)}%</p>
+                        <p className="text-muted-foreground">Densidad: {canalData.saturacion === null || canalData.saturacion === undefined ? "N/D" : `${Math.round(canalData.saturacion)}%`}</p>
+                        <p className="text-muted-foreground">Ocupación: {canalData.ocupacion_espectral === null || canalData.ocupacion_espectral === undefined ? "N/D" : `${Math.round(canalData.ocupacion_espectral)}%`}</p>
                       </div>
                       {isNonOverlapping && (
                         <Badge className="mt-2 bg-green-600 text-white text-xs">

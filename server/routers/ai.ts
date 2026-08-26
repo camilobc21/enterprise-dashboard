@@ -6,7 +6,7 @@ import { encryptProviderKey } from "../ai/providerSecrets";
 import { resolveAIProviderModel } from "@shared/aiProviders";
 import axios from "axios";
 
-const FLASK_API_URL = process.env.FLASK_API_URL || "https://wolverine-punctual-immorally.ngrok-free.dev";
+const FLASK_API_URL = process.env.FLASK_API_URL || "http://127.0.0.1:5000";
 
 // Obtener datos de WiFi desde Flask
 async function getWiFiData() {

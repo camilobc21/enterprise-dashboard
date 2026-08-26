@@ -15,6 +15,10 @@ FLASK_API_URL=http://127.0.0.1:5000
 # Opcional: fija qué usuario administrador aparece como propietario de las observaciones WiFi.
 # WIFI_OWNER_EMAIL=admin@ejemplo.com
 
+# Ajustes transparentes del índice de densidad observado. No son mediciones de interferencia o pérdida.
+# WIFI_CHANNEL_DENSITY_REFERENCE=8
+# WIFI_DENSITY_ALERT_THRESHOLD=6
+
 # Activa documentos locales. La carpeta se crea automáticamente y debe quedarse fuera de Git.
 LOCAL_STORAGE_DIR=./local-storage
 

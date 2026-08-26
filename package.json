@@ -13,7 +13,8 @@
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "auth:repair": "node scripts/repair-local-auth-schema.mjs",
     "network:repair": "node scripts/repair-local-network-schema.mjs",
-    "ai:repair": "node scripts/repair-local-ai-schema.mjs"
+    "ai:repair": "node scripts/repair-local-ai-schema.mjs",
+    "wifi:repair": "node scripts/repair-local-wifi-schema.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

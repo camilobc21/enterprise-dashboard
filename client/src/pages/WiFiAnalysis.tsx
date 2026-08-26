@@ -51,7 +51,6 @@ export default function WiFiAnalysis() {
       const radarCharts = data.slice(0, 6).map((d: any) => ({
         ...d,
         saturacion: Math.round(d.saturacion),
-        ocupacion: Math.round(d.ocupacion),
       }));
       setRadarData(radarCharts);
     }
@@ -81,6 +80,7 @@ export default function WiFiAnalysis() {
   const lastScan = dashboardQuery.data?.ultimo_escaneo;
   const alerts = alertsQuery.data || [];
   const prediction = predictionQuery.data;
+  const metric = (value: number | null | undefined, suffix = "%") => value === null || value === undefined ? "N/D" : `${Number(value).toFixed(1)}${suffix}`;
 
   if (dashboardQuery.data?.sin_datos) {
     return (
@@ -145,7 +145,7 @@ export default function WiFiAnalysis() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 font-bold min-w-fit">2.</span>
-                    <span>Configura la URL del backend: <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono break-all">{window.location.origin}/api/trpc/wifi.submitData</code></span>
+                    <span>Configura la URL Flask en el firmware: <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono break-all">http://IP_DEL_PC:5000/api/scan</code></span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 font-bold min-w-fit">3.</span>
@@ -260,11 +260,11 @@ export default function WiFiAnalysis() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Saturación General</CardTitle>
+                <CardTitle className="text-sm font-medium">Índice de densidad observada</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{lastScan.saturacion_general}%</div>
-                <p className="text-xs text-muted-foreground">Ocupación del espectro</p>
+                <div className="text-2xl font-bold">{metric(lastScan.saturacion_general)}</div>
+                <p className="text-xs text-muted-foreground">Calculado desde redes observadas por canal</p>
               </CardContent>
             </Card>
 
@@ -273,8 +273,8 @@ export default function WiFiAnalysis() {
                 <CardTitle className="text-sm font-medium">Ocupación Espectral</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{lastScan.ocupacion_espectral}%</div>
-                <p className="text-xs text-muted-foreground">Interferencia detectada</p>
+                <div className="text-2xl font-bold">{metric(lastScan.ocupacion_espectral)}</div>
+                <p className="text-xs text-muted-foreground">Requiere medición espectral adicional</p>
               </CardContent>
             </Card>
 
@@ -283,8 +283,8 @@ export default function WiFiAnalysis() {
                 <CardTitle className="text-sm font-medium">Pérdida de Paquetes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{lastScan.perdida_paquetes}%</div>
-                <p className="text-xs text-muted-foreground">Calidad de conexión</p>
+                <div className="text-2xl font-bold">{metric(lastScan.perdida_paquetes)}</div>
+                <p className="text-xs text-muted-foreground">Solo si el sensor la reporta</p>
               </CardContent>
             </Card>
           </div>
@@ -322,10 +322,10 @@ export default function WiFiAnalysis() {
           <Card>
             <CardHeader>
               <CardTitle>Interferencia Adyacente</CardTitle>
-              <CardDescription>Nivel de interferencia por canal</CardDescription>
+              <CardDescription>Disponible solo cuando el sensor reporta una medición directa</CardDescription>
             </CardHeader>
             <CardContent>
-              {chartData.length > 0 ? (
+              {chartData.some((channel) => channel.interferencia !== null && channel.interferencia !== undefined) ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -338,19 +338,19 @@ export default function WiFiAnalysis() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  Sin datos disponibles
+                  El escaneo WiFi pasivo no mide interferencia adyacente directamente
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Gráfico Radar */}
+        {/* Gráfico de densidad observada */}
         {radarData.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Análisis Multidimensional de Canales</CardTitle>
-              <CardDescription>Comparativa de métricas por canal</CardDescription>
+              <CardTitle>Densidad observada por canal</CardTitle>
+              <CardDescription>Comparativa basada únicamente en las redes captadas por el ESP32</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -358,8 +358,7 @@ export default function WiFiAnalysis() {
                   <PolarGrid />
                   <PolarAngleAxis dataKey="canal" />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Saturación" dataKey="saturacion" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                  <Radar name="Ocupación" dataKey="ocupacion" stroke="#ef4444" fill="#ef4444" fillOpacity={0.5} />
+                  <Radar name="Densidad observada" dataKey="saturacion" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
                   <Legend />
                   <Tooltip />
                 </RadarChart>

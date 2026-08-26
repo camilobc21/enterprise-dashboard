@@ -50,6 +50,27 @@
       "when": 1786997271787,
       "tag": "0006_rich_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787752772528,
+      "tag": "0007_abandoned_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787752849989,
+      "tag": "0008_adorable_bloodstorm",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787752961748,
+      "tag": "0009_secret_angel",
+      "breakpoints": true
     }
   ]
 }

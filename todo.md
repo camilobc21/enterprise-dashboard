@@ -130,3 +130,5 @@ Sistema completo de integración con API Flask:
 - [ ] Diagnosticar y corregir el error del chat al invocar el proveedor de IA configurado
 - [ ] Migrar ai_provider_configs existente para soportar proveedores activos y validar editar, activar y eliminar en XAMPP
 - [ ] Actualizar el modelo sugerido de Groq y validar que el proveedor configurado pueda responder en el chat
+- [ ] Calibrar métricas, historial y análisis para que usen exclusivamente registros reales de ESP32, Flask y MySQL/XAMPP
+- [x] Reemplazar los gráficos y tarjetas simuladas de la portada por datos reales de escaneos, documentos y conversaciones
