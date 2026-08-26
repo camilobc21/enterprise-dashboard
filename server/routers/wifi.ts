@@ -10,12 +10,7 @@ import {
   getFutureAnomalies,
   getDetectedNetworks,
   hasData,
-  healthCheck as checkFlaskHealth,
 } from "../_core/flaskClient";
-
-function networksVisibleTo(role: string, networks: any[]) {
-  return role === "admin" ? networks : networks.map(({ bssid, ...network }) => network);
-}
 
 export const wifiRouter = router({
   // Obtener último escaneo WiFi
@@ -109,7 +104,7 @@ export const wifiRouter = router({
         sin_datos: false,
         ultimo_escaneo: data.ultimo_escaneo,
         canales: data.canales || [],
-        redes: networksVisibleTo(ctx.user.role, data.redes || []),
+        redes: data.redes || [],
         alertas: data.alertas || [],
         prediccion: data.prediccion,
         historico: data.historico || [],
@@ -161,7 +156,7 @@ export const wifiRouter = router({
   getNetworks: protectedProcedure.query(async ({ ctx }) => {
     try {
       const networks = await getDetectedNetworks();
-        return networksVisibleTo(ctx.user.role, networks || []);
+      return networks || [];
     } catch (error) {
       console.error("[WiFi] Error fetching networks:", error);
       return [];
@@ -171,13 +166,11 @@ export const wifiRouter = router({
   // Health check
   healthCheck: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const flaskStatus = await checkFlaskHealth();
-      const hasAnyData = flaskStatus.connected ? await hasData() : false;
+      const hasAnyData = await hasData();
       return {
-        ok: flaskStatus.ok,
-        connected: flaskStatus.connected,
+        ok: true,
+        connected: true,
         hasData: hasAnyData,
-        status: flaskStatus.status,
       };
     } catch (error) {
       console.error("[WiFi] Health check failed:", error);

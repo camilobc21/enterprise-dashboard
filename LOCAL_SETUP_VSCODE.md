@@ -132,25 +132,15 @@ pnpm.cmd ai:repair
 
 El comando solo crea la tabla de configuración cifrada y sus índices. Después reinicia `pnpm dev`, vuelve a **Gestión de roles** y guarda el proveedor elegido. Para Groq, la URL base correcta es `https://api.groq.com/openai/v1`; el dashboard la completa automáticamente cuando eliges el perfil Groq.
 
-### Persistir observaciones WiFi reales
-
-Después de actualizar el repositorio, ejecuta una vez este comando para crear la tabla que conserva SSID, BSSID, RSSI, canal y cifrado de cada escaneo del ESP32:
-
-```cmd
-pnpm.cmd wifi:repair
-```
-
-El escáner ESP32 reporta redes observadas y RSSI. Las métricas que ese escaneo pasivo no mide directamente —por ejemplo, ocupación espectral, interferencia adyacente o pérdida de paquetes— se muestran como `N/D`, no como valores inventados.
-
 ## 5. Activar análisis WiFi y ESP32
 
-El repositorio incluye el servidor Flask local `app.py` y el firmware `esp32_wifi_dashboard.ino`. Para completar este módulo, inicia `app.py` en el puerto `5000` y deja esta variable en `.env`:
+El repositorio incluye la integración del dashboard, pero el archivo de la API Flask/firmware de ESP32 debe mantenerse junto a tu proyecto de dispositivo. Para completar este módulo, inicia tu servicio Flask existente en el puerto `5000` y deja esta variable en `.env`:
 
 ```env
 FLASK_API_URL=http://127.0.0.1:5000
 ```
 
-La API expone `GET /api/health`, `GET /api/dashboard` y recibe escaneos en `POST /api/scan` o `POST /api/esp_scan`; el contrato de datos está documentado en [FLASK_INTEGRATION.md](./FLASK_INTEGRATION.md). Para que el ESP32 pueda alcanzar Flask, configura en el firmware la **IP LAN de tu computador**, por ejemplo `http://192.168.1.50:5000/api/scan`; `localhost` solo funciona desde el mismo computador.
+La API debe exponer `GET /api/health`, `GET /api/dashboard` y recibir escaneos en `POST /api/esp_scan`; el contrato de datos está documentado en [FLASK_INTEGRATION.md](./FLASK_INTEGRATION.md). Para que el ESP32 pueda alcanzar Flask, configura en el firmware la **IP LAN de tu computador**, por ejemplo `http://192.168.1.50:5000/api/esp_scan`; `localhost` solo funciona desde el mismo computador.
 
 ## 6. Comprobaciones de funcionamiento
 

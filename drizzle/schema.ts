@@ -235,9 +235,9 @@ export const wifiScans = mysqlTable("wifi_scans", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().references(() => users.id),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-  saturacionGeneral: decimal("saturacionGeneral", { precision: 5, scale: 2 }),
-  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }),
-  perdidaPaquetes: decimal("perdidaPaquetes", { precision: 5, scale: 2 }),
+  saturacionGeneral: decimal("saturacionGeneral", { precision: 5, scale: 2 }).notNull(),
+  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }).notNull(),
+  perdidaPaquetes: decimal("perdidaPaquetes", { precision: 5, scale: 2 }).notNull(),
   totalRedes: int("totalRedes").notNull(),
   tendenciaIA: decimal("tendenciaIA", { precision: 5, scale: 2 }),
   canalOptimo: int("canalOptimo"),
@@ -251,36 +251,14 @@ export type WiFiScan = typeof wifiScans.$inferSelect;
 export type InsertWiFiScan = typeof wifiScans.$inferInsert;
 
 /**
- * WiFi networks observed during an individual ESP32 scan.
- * These are radio observations, not a registry of connected client devices.
- */
-export const wifiNetworks = mysqlTable("wifi_networks", {
-  id: int("id").autoincrement().primaryKey(),
-  scanId: int("scanId").notNull().references(() => wifiScans.id),
-  ssid: varchar("ssid", { length: 255 }),
-  bssid: varchar("bssid", { length: 24 }),
-  canal: int("canal").notNull(),
-  rssi: int("rssi").notNull(),
-  encriptacion: varchar("encriptacion", { length: 80 }),
-  oculto: boolean("oculto").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  scanIdIdx: index("wifi_networks_scanId_idx").on(table.scanId),
-  canalIdx: index("wifi_networks_canal_idx").on(table.canal),
-}));
-
-export type WiFiNetwork = typeof wifiNetworks.$inferSelect;
-export type InsertWiFiNetwork = typeof wifiNetworks.$inferInsert;
-
-/**
  * WiFi Channels table for storing per-channel analysis
  */
 export const wifiChannels = mysqlTable("wifi_channels", {
   id: int("id").autoincrement().primaryKey(),
   scanId: int("scanId").notNull().references(() => wifiScans.id),
   canal: int("canal").notNull(),
-  saturacion: decimal("saturacion", { precision: 5, scale: 2 }),
-  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }),
+  saturacion: decimal("saturacion", { precision: 5, scale: 2 }).notNull(),
+  ocupacionEspectral: decimal("ocupacionEspectral", { precision: 5, scale: 2 }).notNull(),
   interferencia: decimal("interferencia", { precision: 5, scale: 2 }),
   perdidaPaquetes: decimal("perdidaPaquetes", { precision: 5, scale: 2 }),
   riesgoAnomalia: decimal("riesgoAnomalia", { precision: 5, scale: 2 }),

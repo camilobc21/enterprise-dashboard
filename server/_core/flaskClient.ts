@@ -35,7 +35,7 @@ export async function flaskGet<T = any>(endpoint: string, attempt = 1): Promise<
 
     if (!response.ok) {
       console.error(`[Flask] GET ${endpoint} failed: ${response.status}`);
-      if (response.status >= 500 && attempt < RETRY_ATTEMPTS) {
+      if (attempt < RETRY_ATTEMPTS) {
         console.log(`[Flask] Reintentando (${attempt}/${RETRY_ATTEMPTS}) en ${RETRY_DELAY}ms...`);
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         return flaskGet<T>(endpoint, attempt + 1);
@@ -78,7 +78,7 @@ export async function flaskPost<T = any>(endpoint: string, payload: any, attempt
 
     if (!response.ok) {
       console.error(`[Flask] POST ${endpoint} failed: ${response.status}`);
-      if (response.status >= 500 && attempt < RETRY_ATTEMPTS) {
+      if (attempt < RETRY_ATTEMPTS) {
         console.log(`[Flask] Reintentando (${attempt}/${RETRY_ATTEMPTS}) en ${RETRY_DELAY}ms...`);
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         return flaskPost<T>(endpoint, payload, attempt + 1);

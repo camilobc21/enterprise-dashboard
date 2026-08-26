@@ -1,1 +1,0 @@
-ALTER TABLE `wifi_scans` MODIFY COLUMN `perdidaPaquetes` decimal(5,2);

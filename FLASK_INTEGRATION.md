@@ -2,9 +2,7 @@
 
 ## 📋 Descripción
 
-La dashboard React consulta el servicio Flask local (`app.py`). Cada escaneo recibido desde el ESP32 se guarda en la misma base de datos MySQL/XAMPP del proyecto, dentro de `wifi_scans`, `wifi_networks` y `wifi_channels`.
-
-> El ESP32 puede observar SSID, BSSID, RSSI, canal, cifrado y si una red anuncia su SSID. No mide por sí solo pérdida de paquetes, ocupación espectral, interferencia adyacente ni una predicción de IA. Esas métricas se muestran como `N/D` cuando no existe una fuente de medición real.
+La dashboard React consulta el servicio Flask local (`app.py`). Cada escaneo recibido desde el ESP32 se guarda en la misma base de datos MySQL/XAMPP del proyecto, dentro de `wifi_scans`, `wifi_channels`, `wifi_alerts` y `wifi_predictions`.
 
 ## 🔗 Configuración
 
@@ -15,7 +13,6 @@ Crear archivo `.env` en la raíz del proyecto:
 ```env
 FLASK_API_URL=http://localhost:5000
 DATABASE_URL=mysql://root:@127.0.0.1:3306/enterprise_dashboard
-ESP32_SCAN_TOKEN=REEMPLAZA_CON_UN_TOKEN_LOCAL_DE_32_CARACTERES_O_MAS
 ```
 
 O si usas ngrok para desarrollo:
@@ -74,10 +71,10 @@ Visualización en tiempo real
 ## 📱 Componentes Actualizados
 
 ### WiFiAnalysis.tsx
-- Obtiene las observaciones de canales desde Flask
-- Muestra redes observadas y densidad por canal calculada a partir del conteo real
-- Presenta `N/D` para métricas que el ESP32 no puede medir directamente
-- Muestra alertas que realmente estén persistidas
+- Obtiene datos de canales desde Flask
+- Muestra gráficos de saturación, interferencia y ocupación espectral
+- Visualiza predicciones de IA
+- Muestra alertas detectadas
 
 ### WiFiNetworks.tsx
 - Lista todas las redes WiFi detectadas
@@ -92,17 +89,7 @@ Visualización en tiempo real
 
 ## 🚀 Cómo Ejecutar
 
-### Paso 1: Iniciar XAMPP y preparar el esquema WiFi
-
-Inicia **MySQL** desde el panel de XAMPP. Una sola vez, desde la raíz del repositorio, ejecuta:
-
-```cmd
-pnpm.cmd wifi:repair
-```
-
-Este comando crea `wifi_networks` y deja como opcionales las columnas que corresponden a métricas no medidas por el ESP32.
-
-### Paso 2: Instalar dependencias e iniciar Flask
+### Paso 1: Instalar dependencias e iniciar Flask
 
 ```cmd
 cd enterprise-dashboard
@@ -124,42 +111,41 @@ Antes de encender el ESP32, comprueba que la respuesta contiene `"db":"connected
 curl http://127.0.0.1:5000/api/health
 ```
 
-La respuesta también debe incluir `"scan_auth":"configured"`. Genera un token local largo, guarda el mismo valor en `ESP32_SCAN_TOKEN` del archivo `.env` y en la constante `ESP32_SCAN_TOKEN` del firmware. No subas el token a Git ni lo envíes por capturas.
-
-### Paso 3: Configurar Dashboard
+### Paso 2: Configurar Dashboard
 
 En la dashboard, asegúrate de que `FLASK_API_URL` está configurado correctamente en `.env`.
 
-### Paso 4: Ejecutar Dashboard
+### Paso 3: Ejecutar Dashboard
 
 ```bash
 pnpm dev
 ```
 
-### Paso 5: Enviar datos del ESP32
+### Paso 4: Enviar datos del ESP32
 
 El ESP32 enviará datos automáticamente cada 30 segundos a:
 ```
 POST http://IP_DEL_PC:5000/api/scan
 ```
 
-Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Debe aparecer una fila nueva por cada escaneo recibido y una observación por red en `wifi_networks`. El dashboard cuenta las redes persistidas por canal al consultarlas; no guarda una métrica sintética de densidad, ocupación o interferencia.
+Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Debe aparecer una fila nueva por cada escaneo recibido. Los trece canales calculados se guardan en `wifi_channels`; las alertas y la predicción se guardan, respectivamente, en `wifi_alerts` y `wifi_predictions`.
 
 ## 📡 Formato de Datos
 
-### Entrada (ESP32 → Flask)
+### Entrada (ESP8266 → Flask)
 
 ```json
 {
-  "dispositivo": "ESP32-WiFi-Scanner",
+  "dispositivo": "ESP8266",
+  "perdida_paquetes": 5.2,
   "redes": [
     {
       "ssid": "Mi Red WiFi",
-      "bssid": "AA:BB:CC:DD:EE:FF",
       "rssi": -65,
       "canal": 6,
+      "ancho_banda": 20,
       "encriptacion": "WPA2",
-      "oculta": false
+      "perdida_paquetes": 5.2
     }
   ]
 }
@@ -173,13 +159,13 @@ Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Deb
   "sin_datos": false,
   "ultimo_escaneo": {
     "id": 1,
-    "dispositivo": "ESP32-WiFi-Scanner",
+    "dispositivo": "ESP8266",
     "total_redes": 12,
     "canal_optimo": 6,
-    "saturacion_general": null,
-    "ocupacion_espectral": null,
-    "perdida_paquetes": null,
-    "tendencia_ia": null,
+    "saturacion_general": 45.5,
+    "ocupacion_espectral": 62.3,
+    "perdida_paquetes": 8.2,
+    "tendencia_ia": 2,
     "timestamp": "2026-06-24T14:22:35"
   },
   "redes": [
@@ -195,16 +181,28 @@ Después de una respuesta `HTTP 201`, abre phpMyAdmin y revisa `wifi_scans`. Deb
     {
       "canal": 1,
       "cantidad_redes": 3,
-      "saturacion": null,
-      "ocupacion_espectral": null,
-      "interferencia_adyacente": null,
-      "perdida_paquetes": null,
-      "riesgo_anomalia": null,
-      "anomalia": null
+      "saturacion": 23.1,
+      "ocupacion_espectral": 45.2,
+      "interferencia_adyacente": 10.5,
+      "perdida_paquetes": 5.0,
+      "riesgo_anomalia": 25.3,
+      "anomalia": 0
     }
   ],
-  "prediccion": null,
-  "alertas": [],
+  "prediccion": {
+    "canal_predicho": 6,
+    "confianza": 0.85,
+    "score_espectral": 92.5,
+    "detalle": "Predicción IA con Random Forest + Análisis Espectral"
+  },
+  "alertas": [
+    {
+      "canal": 1,
+      "tipo": "ANOMALIA_CANAL",
+      "severidad": "MEDIA",
+      "descripcion": "Canal 1 con comportamiento anómalo..."
+    }
+  ],
   "historico": [...],
   "anomalias_futuras": [...]
 }

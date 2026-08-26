@@ -11,15 +11,9 @@ JWT_SECRET=REEMPLAZA_ESTE_VALOR_POR_UN_SECRETO_ALEATORIO_DE_48_CARACTERES_O_MAS
 # Servicio de análisis WiFi/ESP32. Si no usas el módulo WiFi, puede permanecer apagado.
 FLASK_API_URL=http://127.0.0.1:5000
 
-# Token compartido entre app.py y esp32_wifi_dashboard.ino. Debe tener al menos 16 caracteres; no lo subas a Git.
-ESP32_SCAN_TOKEN=REEMPLAZA_CON_UN_TOKEN_LOCAL_DE_32_CARACTERES_O_MAS
-
 # El servicio Flask usa la misma base de datos MySQL/XAMPP para guardar los escaneos del ESP32.
 # Opcional: fija qué usuario administrador aparece como propietario de las observaciones WiFi.
 # WIFI_OWNER_EMAIL=admin@ejemplo.com
-
-# Orígenes web autorizados a llamar directamente a Flask. Agrega la URL LAN real si expones Flask al navegador.
-DASHBOARD_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # Activa documentos locales. La carpeta se crea automáticamente y debe quedarse fuera de Git.
 LOCAL_STORAGE_DIR=./local-storage

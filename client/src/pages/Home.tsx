@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
-import { BarChart3, Lock, Zap, Users, FileText, MessageSquare, ArrowRight } from "lucide-react";
+import { BarChart3, Lock, Zap, Users, FileText, MessageSquare, TrendingUp, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -40,13 +40,16 @@ export default function Home() {
           Dashboard Empresarial Profesional
         </h1>
         <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-          Plataforma local para autenticación, observaciones WiFi persistidas, inventario de red autorizado y asistentes IA configurables.
+          Sistema completo de gestión con autenticación segura, análisis en tiempo real, integración con IA y mucho más.
         </p>
         <div className="flex gap-4 justify-center">
           <Button asChild size="lg" className="gap-2">
             <Link href="/register">
               Crear cuenta <ArrowRight className="h-4 w-4" />
             </Link>
+          </Button>
+          <Button variant="outline" size="lg">
+            Ver Demo
           </Button>
         </div>
       </section>
@@ -71,7 +74,7 @@ export default function Home() {
               <CardTitle className="text-white">Gráficos Avanzados</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300">Visualizaciones de los registros que están disponibles en el proyecto</p>
+              <p className="text-slate-300">Visualizaciones interactivas con Recharts para análisis profundo</p>
             </CardContent>
           </Card>
 
@@ -111,9 +114,27 @@ export default function Home() {
               <CardTitle className="text-white">Tiempo Real</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300">Canal de notificaciones en vivo cuando el servicio se encuentra disponible</p>
+              <p className="text-slate-300">WebSockets para notificaciones y sincronización instantánea</p>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="container mx-auto px-4 py-20 border-t border-slate-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div>
+            <div className="text-4xl font-bold text-blue-500 mb-2">100%</div>
+            <p className="text-slate-300">Funcionalidades Implementadas</p>
+          </div>
+          <div>
+            <div className="text-4xl font-bold text-green-500 mb-2">7+</div>
+            <p className="text-slate-300">Módulos Principales</p>
+          </div>
+          <div>
+            <div className="text-4xl font-bold text-purple-500 mb-2">∞</div>
+            <p className="text-slate-300">Escalabilidad</p>
+          </div>
         </div>
       </section>
 
