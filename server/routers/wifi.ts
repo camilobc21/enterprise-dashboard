@@ -10,6 +10,7 @@ import {
   getFutureAnomalies,
   getDetectedNetworks,
   hasData,
+  healthCheck as checkFlaskHealth,
 } from "../_core/flaskClient";
 
 export const wifiRouter = router({
@@ -166,11 +167,13 @@ export const wifiRouter = router({
   // Health check
   healthCheck: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const hasAnyData = await hasData();
+      const flaskStatus = await checkFlaskHealth();
+      const hasAnyData = flaskStatus.connected ? await hasData() : false;
       return {
-        ok: true,
-        connected: true,
+        ok: flaskStatus.ok,
+        connected: flaskStatus.connected,
         hasData: hasAnyData,
+        status: flaskStatus.status,
       };
     } catch (error) {
       console.error("[WiFi] Health check failed:", error);
