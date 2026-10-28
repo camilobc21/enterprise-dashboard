@@ -1,7 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -33,7 +33,8 @@ class FlaskScanApiTest(unittest.TestCase):
         self.assertIn("MySQL/XAMPP", response.get_json()["error"])
 
     def test_health_connects_to_the_configured_mysql_database(self):
-        response = self.client.get("/api/health")
+        with patch("app._connect_db", return_value=MagicMock()):
+            response = self.client.get("/api/health")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["db"], "connected")

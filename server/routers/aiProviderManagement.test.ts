@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import type { TrpcContext } from "../_core/context";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
   activateAIProviderConfig: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock("../ai/configuredProvider", () => ({
 }));
 vi.mock("../ai/providerSecrets", () => ({ encryptProviderKey: vi.fn((key: string) => `encrypted:${key}`) }));
 
-import { aiRouter } from "./ai";
+import { aiRouter, generateWiFiContext } from "./ai";
 
 function makeUser(role: "admin" | "user") {
   return { id: 7, openId: "local:test", name: "Test", email: "test@example.com", passwordHash: "hash", loginMethod: "email_password", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
@@ -33,6 +34,24 @@ function createContext(role: "admin" | "user"): TrpcContext {
 }
 
 describe("AI provider management", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("prevents reading another user's conversation and messages", async () => {
+    dbMocks.getAIConversationById.mockResolvedValue({ id: 5, userId: 99 });
+    const caller = aiRouter.createCaller(createContext("user"));
+    await expect(caller.getConversation({ id: 5 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.getMessages({ conversationId: 5 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(dbMocks.getConversationMessages).not.toHaveBeenCalled();
+  });
+
+  it("allows reading the caller's own conversation", async () => {
+    const conversation = { id: 5, userId: 7 };
+    dbMocks.getAIConversationById.mockResolvedValue(conversation);
+    dbMocks.getConversationMessages.mockResolvedValue([]);
+    const caller = aiRouter.createCaller(createContext("user"));
+    await expect(caller.getConversation({ id: 5 })).resolves.toEqual(conversation);
+    await expect(caller.getMessages({ conversationId: 5 })).resolves.toEqual([]);
+  });
   it("restricts the saved-provider list to administrators", async () => {
     const caller = aiRouter.createCaller(createContext("user"));
     await expect(caller.listProviderConfigs()).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -58,5 +77,18 @@ describe("AI provider management", () => {
     const caller = aiRouter.createCaller(createContext("admin"));
     await expect(caller.activateProviderConfig({ id: 2 })).resolves.toMatchObject({ configured: true });
     await expect(caller.deleteProviderConfig({ id: 2 })).resolves.toEqual({ deleted: true });
+  });
+});
+
+
+describe("WiFi AI context", () => {
+  it("accepts ESP32 field names and converts fractional confidence to percent", () => {
+    const context = generateWiFiContext({ redes: [{ ssid: "Lab", channel: 6, rssi: -60 }], prediccion: { confianza: 0.89 } });
+    expect(context).toContain("Canal: 6");
+    expect(context).toContain("Confianza: 89%");
+    expect(context).toContain("no las presentes como mediciones reales");
+  });
+  it("handles unavailable arrays without breaking the conversation", () => {
+    expect(() => generateWiFiContext({ redes: {}, canales: null, historico: "invalid" })).not.toThrow();
   });
 });

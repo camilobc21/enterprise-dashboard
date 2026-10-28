@@ -10,6 +10,7 @@ import {
   getFutureAnomalies,
   getDetectedNetworks,
   hasData,
+  healthCheck as checkFlaskHealth,
 } from "../_core/flaskClient";
 
 export const wifiRouter = router({
@@ -166,6 +167,10 @@ export const wifiRouter = router({
   // Health check
   healthCheck: protectedProcedure.query(async ({ ctx }) => {
     try {
+      const health = await checkFlaskHealth();
+      if (!health.ok || !health.connected) {
+        return { ok: false, connected: false, hasData: false };
+      }
       const hasAnyData = await hasData();
       return {
         ok: true,
